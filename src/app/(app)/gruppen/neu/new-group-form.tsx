@@ -16,7 +16,15 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
         <label className="label" htmlFor="name">
           Name der Gruppe
         </label>
-        <input id="name" name="name" required className="input" placeholder="z. B. WG Hauptstraße" autoFocus />
+        <input
+          id="name"
+          name="name"
+          required
+          maxLength={80}
+          className="input"
+          placeholder="z. B. WG Hauptstraße"
+          autoFocus
+        />
       </div>
 
       <div>

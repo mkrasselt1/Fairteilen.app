@@ -22,6 +22,7 @@ export async function createGroupAction(_prev: ActionState, formData: FormData):
     .filter(Boolean);
 
   if (name.length < 2) return { error: "Bitte gib der Gruppe einen Namen." };
+  if (name.length > 80) return { error: "Der Gruppenname darf höchstens 80 Zeichen lang sein." };
   if (!GROUP_TYPES.some((t) => t.id === type)) return { error: "Unbekannter Gruppentyp." };
   if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
 
@@ -64,6 +65,7 @@ export async function updateGroupAction(_prev: ActionState, formData: FormData):
   const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
   if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
   if (name.length < 2) return { error: "Bitte gib der Gruppe einen Namen." };
+  if (name.length > 80) return { error: "Der Gruppenname darf höchstens 80 Zeichen lang sein." };
   if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
 
   await prisma.group.update({ where: { id: groupId }, data: { name, type, currency, simplifyDebts } });

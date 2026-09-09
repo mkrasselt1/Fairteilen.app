@@ -1,11 +1,30 @@
 services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: fairteilen
+      MARIADB_USER: fairteilen
+      MARIADB_PASSWORD: "${DB_PASSWORD:-fairteilen}"
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - fairteilen-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
   fairteilen:
     build: .
     ports:
       - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      # SQLite in einem Volume – für kleine bis mittlere Instanzen völlig ausreichend.
-      DATABASE_URL: "file:/data/fairteilen.db"
+      DATABASE_URL: "mysql://fairteilen:${DB_PASSWORD:-fairteilen}@db:3306/fairteilen"
       AUTH_SECRET: "${AUTH_SECRET:?bitte in .env setzen: openssl rand -base64 48}"
       APP_URL: "${APP_URL:-http://localhost:3000}"
       # Optional: Anmeldung über Google / Apple
@@ -15,9 +34,7 @@ services:
       APPLE_TEAM_ID: "${APPLE_TEAM_ID:-}"
       APPLE_KEY_ID: "${APPLE_KEY_ID:-}"
       APPLE_PRIVATE_KEY: "${APPLE_PRIVATE_KEY:-}"
-    volumes:
-      - fairteilen-data:/data
     restart: unless-stopped
 
 volumes:
-  fairteilen-data:
+  fairteilen-db:

@@ -40,6 +40,7 @@ function parseExpenseForm(formData: FormData): ParsedForm {
 
   const description = String(formData.get("description") ?? "").trim();
   if (description.length < 1) throw new SplitError("Bitte gib eine Beschreibung an.");
+  if (description.length > 120) throw new SplitError("Die Beschreibung darf höchstens 120 Zeichen lang sein.");
 
   const amountCents = parseAmountToCents(String(formData.get("amount") ?? ""), currency);
   if (amountCents === null || amountCents <= 0) throw new SplitError("Bitte gib einen gültigen Betrag größer 0 an.");
@@ -360,6 +361,7 @@ export async function addCommentAction(_prev: ActionState, formData: FormData): 
   const expenseId = String(formData.get("expenseId") ?? "");
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return { error: "Bitte gib einen Kommentar ein." };
+  if (body.length > 4000) return { error: "Der Kommentar darf höchstens 4000 Zeichen lang sein." };
 
   const expense = await prisma.expense.findFirst({
     where: {

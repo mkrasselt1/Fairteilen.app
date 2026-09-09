@@ -1,14 +1,38 @@
 # Fairteilen auf Plesk betreiben
 
 Plesk startet Node.js-Anwendungen über Phusion Passenger. Dafür liegt im Projekt die
-Startdatei [`app.js`](../app.js) bereit.
+Startdatei [`app.js`](../app.js) bereit. Als Datenbank wird die in Plesk ohnehin vorhandene
+**MySQL- bzw. MariaDB**-Instanz genutzt.
 
-## 1. Dateien auf den Server bringen
+---
 
-Über Git (Plesk → *Git*) oder per SFTP nach `/httpdocs`. Nach jedem Update gilt:
-`npm install` → `npm run build` → *App neu starten*.
+## 1. Datenbank anlegen
 
-## 2. Einstellungen unter „Node.js“
+Plesk → **Datenbanken** → *Datenbank hinzufügen*:
+
+| Feld | Wert |
+|---|---|
+| Datenbankname | `fairteilen` |
+| Zugehöriges Abonnement | Fairteilen.app |
+| Datenbankbenutzer | z. B. `fairteilen` mit eigenem Passwort |
+
+Die Zeichenkodierung sollte **utf8mb4** sein, damit Umlaute und Emoji sicher gespeichert
+werden. Falls Plesk etwas anderes vorgibt, im Reiter *phpMyAdmin* bzw. per SSH nachziehen:
+
+```sql
+ALTER DATABASE fairteilen CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+---
+
+## 2. Dateien auf den Server bringen
+
+Über Plesk → *Git* (Branch `claude/splitwise-clone-a3w70z` bzw. später `main`) oder per SFTP
+nach `/httpdocs`. Nach jedem Update gilt: `npm install` → `npm run build` → *App neu starten*.
+
+---
+
+## 3. Einstellungen unter „Node.js“
 
 | Feld | Wert |
 |---|---|
@@ -20,40 +44,33 @@ Startdatei [`app.js`](../app.js) bereit.
 | **Anwendungsstartdatei** | `app.js` |
 
 > Der Dokumentenstamm muss auf `public` zeigen, nicht auf `/httpdocs`. Sonst würde Passenger
-> Dateien wie `package.json`, `.env` oder die Datenbank direkt ausliefern. Alle übrigen Pfade
-> beantwortet die Anwendung selbst.
+> Dateien wie `package.json` oder `.env` direkt ausliefern. Alle übrigen Pfade beantwortet die
+> Anwendung selbst.
 
-## 3. Umgebungsvariablen
+---
+
+## 4. Umgebungsvariablen
 
 Unter *Benutzerdefinierte Umgebungsvariablen* → **[angeben]**:
 
 | Name | Wert |
 |---|---|
-| `DATABASE_URL` | `file:/var/www/vhosts/fairteilen.app/private/fairteilen.db` |
+| `DATABASE_URL` | `mysql://fairteilen:PASSWORT@localhost:3306/fairteilen` |
 | `AUTH_SECRET` | langer Zufallswert, z. B. aus `openssl rand -base64 48` |
 | `APP_URL` | `https://fairteilen.app` |
 | `NODE_ENV` | `production` |
 
-Das Verzeichnis `private/` liegt bewusst **außerhalb** von `httpdocs`, damit die
-Datenbankdatei nicht über das Web erreichbar ist. Einmalig anlegen (Plesk → *Dateien* oder SSH):
-
-```bash
-mkdir -p /var/www/vhosts/fairteilen.app/private
-```
-
-Wer lieber PostgreSQL nutzt (in Plesk unter *Datenbanken* anlegbar):
-
-```bash
-npm run use:postgres
-# DATABASE_URL=postgresql://benutzer:passwort@localhost:5432/fairteilen
-npx prisma db push
-```
+Enthält das Datenbankpasswort Sonderzeichen wie `@`, `:`, `/` oder `#`, müssen diese in der URL
+prozentkodiert werden (`@` → `%40`, `#` → `%23`). Am einfachsten ist ein Passwort aus
+Buchstaben und Ziffern.
 
 Optional für die Anmeldung mit Google bzw. Apple – dieselben Variablen wie in
 [`.env.example`](../.env.example): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
 `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`.
 
-## 4. Einmalig aufbauen
+---
+
+## 5. Einmalig aufbauen
 
 Reiter **Node.js-Befehle ausführen** (oder per SSH in `/httpdocs`), in dieser Reihenfolge:
 
@@ -68,18 +85,52 @@ Entwicklungsabhängigkeiten überspringt – und ohne TypeScript und Tailwind sc
 
 Danach **App neu starten**.
 
-## 5. HTTPS
+---
+
+## 6. HTTPS
 
 Unter *SSL/TLS-Zertifikate* ein Let's-Encrypt-Zertifikat ausstellen und „Dauerhafte
 Weiterleitung von HTTP zu HTTPS“ aktivieren. Das ist Pflicht, sobald die Anmeldung mit
 Apple genutzt wird, und sorgt dafür, dass die Sitzungs-Cookies als `Secure` gesetzt werden.
 
-## Häufige Fehler
+---
 
-| Meldung | Ursache |
-|---|---|
-| *Die Datei app.js ist nicht vorhanden* | Der Code liegt noch nicht in `/httpdocs` oder der Anwendungsstamm zeigt woanders hin |
-| `Could not find a production build` | `npm run build` wurde noch nicht ausgeführt |
-| `Cannot find module 'typescript'` | `npm install` lief ohne `--production=false` |
-| `PrismaClientInitializationError` | `DATABASE_URL` fehlt, oder `npx prisma db push` wurde nicht ausgeführt |
-| Seite lädt ohne Gestaltung | Der Dokumentenstamm zeigt auf ein falsches Verzeichnis |
+## Fehlersuche
+
+### „We're sorry, but something went wrong.“ (Passenger)
+
+Diese Seite bedeutet: Passenger konnte die Anwendung nicht starten. Die eigentliche Ursache
+steht immer im Log – **zuerst dort nachsehen**:
+
+- Plesk → *Websites & Domains* → **Logs** → `error_log`
+- oder per SSH: `tail -50 /var/www/vhosts/fairteilen.app/logs/error_log`
+- die auf der Fehlerseite angezeigte *Error ID* hilft beim Suchen im Log
+
+Die häufigsten Ursachen, in dieser Reihenfolge:
+
+| Meldung im Log | Ursache | Lösung |
+|---|---|---|
+| `Cannot find module '/httpdocs/app.js'` | Die Startdatei fehlt – der Code auf dem Server ist älter als das Repository | Aktuellen Stand ziehen (`app.js` liegt im Projektstamm) |
+| `Could not find a production build in the '.next' directory` | `npm run build` wurde nie ausgeführt | Build ausführen, dann App neu starten |
+| `Cannot find module 'next'` | `npm install` fehlt oder lief im falschen Verzeichnis | `npm install --production=false` im Anwendungsstamm |
+| `Cannot find module 'typescript'` / `tailwindcss` | `npm install` lief ohne `--production=false` | erneut mit dem Schalter ausführen |
+| `@prisma/client did not initialize yet` | `prisma generate` fehlt | `npm install` erneut (läuft dort automatisch mit) oder `npx prisma generate` |
+| `Table 'fairteilen.User' doesn't exist` | Die Tabellen wurden nicht angelegt | `npx prisma db push` |
+| `Access denied for user` / `Unknown database` | `DATABASE_URL` stimmt nicht | Zugangsdaten prüfen, Sonderzeichen prozentkodieren |
+| `Error validating datasource db: the URL must start with mysql://` | Es ist noch ein anderer Provider gesetzt | `npm run use:mysql`, dann `npx prisma db push` |
+| `The engine-mode of the Prisma Client` / Fehler beim Start | Node-Version zu alt | Node 20 oder 22 wählen und neu starten |
+
+Zum Prüfen ohne Weboberfläche lässt sich die Anwendung auch direkt starten – dann erscheint der
+Fehler unmittelbar im Terminal:
+
+```bash
+cd /var/www/vhosts/fairteilen.app/httpdocs
+node app.js
+```
+
+### Seite lädt, aber ohne Gestaltung
+Der Dokumentenstamm zeigt auf ein falsches Verzeichnis – er muss `/httpdocs/public` sein.
+
+### Anmeldung schlägt fehl, obwohl das Passwort stimmt
+`AUTH_SECRET` fehlt oder ändert sich bei jedem Start. Einen festen Wert setzen; alle bestehenden
+Sitzungen werden dadurch einmalig ungültig.

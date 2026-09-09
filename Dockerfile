@@ -25,10 +25,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
 
-RUN mkdir -p /data && chown -R nextjs:nodejs /data /app/.next
+RUN chown -R nextjs:nodejs /app/.next
 USER nextjs
-VOLUME /data
 EXPOSE 3000
 
-# Beim Start das Schema anwenden, dann den Server starten.
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npm start"]
+# Beim Start auf die Datenbank warten, das Schema anwenden, dann den Server starten.
+CMD ["sh", "-c", "for i in $(seq 1 30); do npx prisma db push --skip-generate && break; echo 'Warte auf die Datenbank …'; sleep 2; done; npm start"]

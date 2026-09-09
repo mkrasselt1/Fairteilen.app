@@ -18,7 +18,7 @@ export function ProfileForm({ user }: { user: { name: string; email: string; cur
         <label className="label" htmlFor="name">
           Name
         </label>
-        <input id="name" name="name" defaultValue={user.name} required className="input" />
+        <input id="name" name="name" defaultValue={user.name} required maxLength={80} className="input" />
       </div>
       <div>
         <label className="label" htmlFor="email">

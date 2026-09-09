@@ -32,6 +32,8 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
   const next = String(formData.get("next") ?? "/");
 
   if (name.length < 2) return { error: "Bitte gib deinen Namen an." };
+  if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
+  if (email.length > 180) return { error: "Die E-Mail-Adresse ist zu lang." };
   if (!EMAIL_RE.test(email)) return { error: "Bitte gib eine gültige E-Mail-Adresse an." };
   if (password.length < 8) return { error: "Das Passwort muss mindestens 8 Zeichen lang sein." };
   if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
@@ -79,6 +81,8 @@ export async function updateProfileAction(_prev: ActionState, formData: FormData
   const currency = String(formData.get("currency") ?? user.currency);
 
   if (name.length < 2) return { error: "Bitte gib deinen Namen an." };
+  if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
+  if (email.length > 180) return { error: "Die E-Mail-Adresse ist zu lang." };
   if (!EMAIL_RE.test(email)) return { error: "Bitte gib eine gültige E-Mail-Adresse an." };
   if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
 

@@ -45,10 +45,24 @@ git clone https://github.com/mkrasselt1/Fairteilen.app.git
 cd Fairteilen.app
 npm install
 cp .env.example .env          # AUTH_SECRET setzen: openssl rand -base64 48
-npx prisma db push            # legt die SQLite-Datei an
+```
+
+Datenbank anlegen (MySQL oder MariaDB) und in `DATABASE_URL` eintragen:
+
+```sql
+CREATE DATABASE fairteilen CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'fairteilen'@'localhost' IDENTIFIED BY 'passwort';
+GRANT ALL PRIVILEGES ON fairteilen.* TO 'fairteilen'@'localhost';
+```
+
+```bash
+npx prisma db push            # legt die Tabellen an
 npm run db:seed               # optional: Beispieldaten
 npm run dev                   # http://localhost:3000
 ```
+
+Ohne Datenbankserver arbeiten? `npm run use:sqlite`, `DATABASE_URL="file:./dev.db"`,
+`npx prisma db push` – dann läuft alles aus einer Datei.
 
 Die Beispieldaten legen drei Konten an – Passwort jeweils `fairteilen`:
 `alex@example.com`, `jamie@example.com`, `robin@example.com`.
@@ -65,15 +79,18 @@ echo "APP_URL=https://fairteilen.example"    >> .env
 docker compose up -d --build
 ```
 
-SQLite liegt dann im Volume `fairteilen-data`. Für Sicherungen genügt es, die Datei zu kopieren.
+Das Compose-Setup startet MariaDB gleich mit; die Daten liegen im Volume `fairteilen-db`.
 
-### PostgreSQL statt SQLite
+### Andere Datenbank
+
+Das Schema lässt sich mit einem Befehl umstellen – dabei werden auch die Datentypen der
+langen Textfelder passend gesetzt:
 
 ```bash
-npm run use:postgres
-# DATABASE_URL in .env auf die Postgres-Instanz zeigen lassen
-npx prisma db push
-npm run build && npm start
+npm run use:mysql       # MySQL / MariaDB (Standard)
+npm run use:postgres    # PostgreSQL
+npm run use:sqlite      # SQLite, ohne Datenbankserver
+npx prisma db push      # danach jeweils einmal ausführen
 ```
 
 ### Plesk / Phusion Passenger
@@ -90,7 +107,7 @@ Ein normales Next.js-Projekt: Repository verbinden, `DATABASE_URL` (Postgres), `
 
 | Variable | Pflicht | Bedeutung |
 |---|---|---|
-| `DATABASE_URL` | ja | `file:./dev.db` (SQLite) oder `postgresql://…` |
+| `DATABASE_URL` | ja | `mysql://benutzer:passwort@host:3306/fairteilen` (bzw. `postgresql://…` / `file:./dev.db`) |
 | `AUTH_SECRET` | ja | Signiert die Sitzungs-Cookies, mindestens 32 Zeichen |
 | `APP_URL` | empfohlen | Öffentliche Basis-URL – für Einladungs- und OAuth-Links |
 | `ALLOW_REGISTRATION` | nein | `false` schließt die Registrierung (Beitritt nur per Einladungslink) |
@@ -121,6 +138,8 @@ Sind die Werte eines Anbieters nicht gesetzt, erscheint dessen Knopf gar nicht e
   die Summe der Anteile entspricht immer exakt dem Gesamtbetrag.
 - **Je Ausgabe und Person** werden zwei Werte gespeichert: `paidCents` (tatsächlich bezahlt) und
   `oweCents` (rechnerischer Anteil). Der Saldo ist die Differenz.
+- **Die Datenbank speichert nur ganze Zahlen** (`Int`), keine Dezimaltypen – das Runden passiert
+  ausschließlich an einer Stelle im Rechenkern.
 - **Währungen werden nicht umgerechnet.** Salden entstehen je Währung getrennt, damit keine
   schwankenden Wechselkurse in alte Abrechnungen geraten.
 - **Zahlungen** sind intern gewöhnliche Einträge mit `isPayment` – dadurch tauchen sie im Verlauf

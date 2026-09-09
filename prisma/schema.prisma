@@ -1,12 +1,13 @@
 // Fairteilen.app – Datenmodell
-// Standard: SQLite (keine Konfiguration nötig). Für Produktion: `npm run use:postgres`.
+// Standard: MySQL / MariaDB. Umstellen mit `npm run use:postgres` bzw.
+// `npm run use:sqlite` (SQLite braucht keinen Datenbankserver – praktisch für lokale Arbeit).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -115,7 +116,7 @@ model Expense {
   currency    String   @default("EUR")
   date        DateTime @default(now())
   category    String   @default("general")
-  notes       String?
+  notes       String? @db.Text
   splitType   String   @default("equal") // equal | exact | percent | shares | adjustment
   isPayment   Boolean  @default(false)
   createdById String
@@ -158,7 +159,7 @@ model Comment {
   id        String   @id @default(cuid())
   expenseId String
   userId    String
-  body      String
+  body      String @db.Text
   createdAt DateTime @default(now())
 
   expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
@@ -174,7 +175,7 @@ model Activity {
   actorId   String
   groupId   String?
   expenseId String?
-  payload   String   @default("{}")
+  payload   String   @default("{}") @db.Text
   createdAt DateTime @default(now())
 
   actor   User     @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)

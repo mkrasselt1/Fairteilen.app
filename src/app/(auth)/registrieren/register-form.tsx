@@ -14,7 +14,15 @@ export function RegisterForm({ next }: { next: string }) {
         <label className="label" htmlFor="name">
           Name
         </label>
-        <input id="name" name="name" autoComplete="name" required className="input" placeholder="Alex Muster" />
+        <input
+          id="name"
+          name="name"
+          autoComplete="name"
+          required
+          maxLength={80}
+          className="input"
+          placeholder="Alex Muster"
+        />
       </div>
       <div>
         <label className="label" htmlFor="email">

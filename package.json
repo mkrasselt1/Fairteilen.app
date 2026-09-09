@@ -14,9 +14,11 @@
     "db:studio": "prisma studio",
     "db:seed": "node --experimental-strip-types prisma/seed.ts",
     "postinstall": "prisma generate",
-    "use:postgres": "node scripts/use-postgres.mjs",
     "test": "node --test --experimental-strip-types --conditions=react-server \"tests/**/*.test.ts\"",
-    "test:e2e": "node tests/e2e.mjs"
+    "test:e2e": "node tests/e2e.mjs",
+    "use:mysql": "node scripts/use-database.mjs mysql",
+    "use:postgres": "node scripts/use-database.mjs postgres",
+    "use:sqlite": "node scripts/use-database.mjs sqlite"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

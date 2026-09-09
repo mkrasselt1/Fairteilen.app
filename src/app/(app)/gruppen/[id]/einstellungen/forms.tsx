@@ -19,7 +19,7 @@ export function GroupSettingsForm({
         <label className="label" htmlFor="name">
           Name
         </label>
-        <input id="name" name="name" defaultValue={group.name} required className="input" />
+        <input id="name" name="name" defaultValue={group.name} required maxLength={80} className="input" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
