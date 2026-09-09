@@ -61,6 +61,6 @@ console.log(`✓ ${SCHEMA} nutzt jetzt ${target.label}.
 Nächste Schritte:
   1. DATABASE_URL in .env setzen, z. B.
        DATABASE_URL="${target.example}"
-  2. npx prisma db push
+  2. npm run db:push
   3. npm run build && npm start
 `);

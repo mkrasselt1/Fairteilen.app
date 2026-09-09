@@ -13,7 +13,7 @@
  *
  * Vor dem ersten Start einmalig ausführen (Reiter „Node.js-Befehle ausführen“):
  *   npm install --production=false
- *   npx prisma db push
+ *   npm run db:push
  *   npm run build
  *
  * Bei einer eigenen VM oder Docker wird diese Datei nicht gebraucht –

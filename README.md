@@ -56,13 +56,13 @@ GRANT ALL PRIVILEGES ON fairteilen.* TO 'fairteilen'@'localhost';
 ```
 
 ```bash
-npx prisma db push            # legt die Tabellen an
+npm run db:push               # legt die Tabellen an
 npm run db:seed               # optional: Beispieldaten
 npm run dev                   # http://localhost:3000
 ```
 
 Ohne Datenbankserver arbeiten? `npm run use:sqlite`, `DATABASE_URL="file:./dev.db"`,
-`npx prisma db push` – dann läuft alles aus einer Datei.
+`npm run db:push` – dann läuft alles aus einer Datei.
 
 Die Beispieldaten legen drei Konten an – Passwort jeweils `fairteilen`:
 `alex@example.com`, `jamie@example.com`, `robin@example.com`.
@@ -90,7 +90,7 @@ langen Textfelder passend gesetzt:
 npm run use:mysql       # MySQL / MariaDB (Standard)
 npm run use:postgres    # PostgreSQL
 npm run use:sqlite      # SQLite, ohne Datenbankserver
-npx prisma db push      # danach jeweils einmal ausführen
+npm run db:push      # danach jeweils einmal ausführen
 ```
 
 ### Plesk / Phusion Passenger
@@ -157,6 +157,7 @@ Datenbankabhängigkeiten – deshalb nutzen ihn der Server und der Gastmodus im 
 
 ```bash
 npm run dev         # Entwicklungsserver
+npm run setup       # Prisma-Client, Tabellen und Build in einem Schritt
 npm test            # Tests für Rechenkern, Beträge und OAuth-Prüfung
 npm run typecheck   # TypeScript ohne Ausgabe prüfen
 npm run build       # Produktions-Build

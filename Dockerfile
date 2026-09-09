@@ -30,4 +30,4 @@ USER nextjs
 EXPOSE 3000
 
 # Beim Start auf die Datenbank warten, das Schema anwenden, dann den Server starten.
-CMD ["sh", "-c", "for i in $(seq 1 30); do npx prisma db push --skip-generate && break; echo 'Warte auf die Datenbank …'; sleep 2; done; npm start"]
+CMD ["sh", "-c", "for i in $(seq 1 30); do npm run db:push -- --skip-generate && break; echo 'Warte auf die Datenbank …'; sleep 2; done; npm start"]

@@ -74,10 +74,10 @@ APP_URL="https://fairteilen.app"
 NODE_ENV="production"
 ```
 
-Vorteile: Die Werte stehen auch den Befehlen aus dem Reiter *Node.js-Befehle ausführen* zur
-Verfügung – `npx prisma db push` braucht `DATABASE_URL`. Außerdem lassen sich lange Werte wie der
-Apple-Schlüssel bequem einfügen. Da der Dokumentenstamm auf `public` zeigt, ist die Datei nicht
-über das Web abrufbar.
+Vorteile: Die Werte stehen auch den npm-Skripten zur Verfügung, die über die Plesk-Oberfläche
+gestartet werden – `setup` bzw. `db:push` brauchen `DATABASE_URL`. Außerdem lassen sich lange
+Werte wie der Apple-Schlüssel bequem einfügen. Da der Dokumentenstamm auf `public` zeigt, ist
+die Datei nicht über das Web abrufbar.
 
 ### Weg B: Plesk-Oberfläche
 
@@ -86,8 +86,9 @@ Apple-Schlüssel bequem einfügen. Da der Dokumentenstamm auf `public` zeigt, is
 
 Zu beachten: Zeilenumbrüche sind in diesem Dialog nicht möglich. Für `APPLE_PRIVATE_KEY` deshalb
 die Umbrüche als `\n` schreiben (die Anwendung setzt sie beim Start zurück) – oder gleich Weg A
-nutzen. Ob Plesk diese Variablen auch an den Reiter *Node.js-Befehle ausführen* weitergibt,
-unterscheidet sich je nach Version; für `npx prisma db push` ist Weg A daher verlässlicher.
+nutzen. Ob Plesk diese Variablen auch an die über die Oberfläche gestarteten npm-Skripte
+weitergibt, unterscheidet sich je nach Version; für `setup` und `db:push` ist Weg A deshalb der
+verlässlichere Weg.
 
 ### Hinweise zu den Werten
 
@@ -105,18 +106,33 @@ Optional für die Anmeldung mit Google bzw. Apple – dieselben Variablen wie in
 
 ## 5. Einmalig aufbauen
 
-Reiter **Node.js-Befehle ausführen** (oder per SSH in `/httpdocs`), in dieser Reihenfolge:
+Dafür genügen zwei Klicks auf der Node.js-Seite – eine Kommandozeile wird nicht gebraucht:
 
-```bash
-npm install --production=false
-npx prisma db push
-npm run build
-```
+1. **NPM install** (das Paket-Symbol neben *App neu starten*)
+2. **NPM-Skript ausführen** (das ▷-Symbol) → Skript **`setup`** auswählen
+3. **App neu starten**
 
-`--production=false` ist nötig, weil der Anwendungsmodus `production` sonst die
-Entwicklungsabhängigkeiten überspringt – und ohne TypeScript und Tailwind schlägt der Build fehl.
+`setup` erledigt in einem Durchgang: Prisma-Client erzeugen, Tabellen anlegen und die
+Anwendung bauen.
 
-Danach **App neu starten**.
+Wer lieber einzeln vorgeht, findet dieselben Schritte als eigene Skripte:
+
+| Skript | Entspricht |
+|---|---|
+| `db:generate` | Prisma-Client erzeugen |
+| `db:push` | Tabellen in der Datenbank anlegen bzw. abgleichen |
+| `build` | Anwendung bauen |
+| `db:seed` | Beispieldaten einspielen (optional) |
+
+> Alle nötigen Befehle sind bewusst als npm-Skripte hinterlegt, damit sie über die
+> Plesk-Oberfläche laufen. `npx` wird nirgends gebraucht.
+
+### Warum kein `--production=false` nötig ist
+
+Der Anwendungsmodus `production` würde `npm install` normalerweise dazu bringen, die
+Entwicklungsabhängigkeiten wegzulassen – ohne TypeScript, Tailwind und die Prisma-CLI schlägt
+der Build dann fehl. Die Datei [`.npmrc`](../.npmrc) im Projekt setzt deshalb `include=dev`,
+sodass der Knopf *NPM install* in Plesk ohne Zusatzangaben das Richtige tut.
 
 ---
 
@@ -145,13 +161,13 @@ Die häufigsten Ursachen, in dieser Reihenfolge:
 |---|---|---|
 | `Cannot find module '/httpdocs/app.js'` | Die Startdatei fehlt – der Code auf dem Server ist älter als das Repository | Aktuellen Stand ziehen (`app.js` liegt im Projektstamm) |
 | `Could not find a production build in the '.next' directory` | `npm run build` wurde nie ausgeführt | Build ausführen, dann App neu starten |
-| `Cannot find module 'next'` | `npm install` fehlt oder lief im falschen Verzeichnis | `npm install --production=false` im Anwendungsstamm |
-| `Cannot find module 'typescript'` / `tailwindcss` | `npm install` lief ohne `--production=false` | erneut mit dem Schalter ausführen |
-| `@prisma/client did not initialize yet` | `prisma generate` fehlt | `npm install` erneut (läuft dort automatisch mit) oder `npx prisma generate` |
-| `Table 'fairteilen.User' doesn't exist` | Die Tabellen wurden nicht angelegt | `npx prisma db push` |
+| `Cannot find module 'next'` | `npm install` fehlt oder lief im falschen Verzeichnis | *NPM install* im Anwendungsstamm ausführen |
+| `Cannot find module 'typescript'` / `tailwindcss` | Die Entwicklungsabhängigkeiten fehlen | Prüfen, ob `.npmrc` mit `include=dev` auf dem Server liegt, dann *NPM install* wiederholen |
+| `@prisma/client did not initialize yet` | `prisma generate` fehlt | Skript `db:generate` ausführen |
+| `Table 'fairteilen.User' doesn't exist` | Die Tabellen wurden nicht angelegt | Skript `db:push` ausführen |
 | `Access denied for user` / `Unknown database` | `DATABASE_URL` stimmt nicht | Zugangsdaten prüfen, Sonderzeichen prozentkodieren |
 | `Environment variable not found: DATABASE_URL` | Die Variable ist weder in `.env` noch in Plesk hinterlegt | siehe Abschnitt 4 |
-| `Error validating datasource db: the URL must start with mysql://` | Es ist noch ein anderer Provider gesetzt | `npm run use:mysql`, dann `npx prisma db push` |
+| `Error validating datasource db: the URL must start with mysql://` | Es ist noch ein anderer Provider gesetzt | `npm run use:mysql`, dann `npm run db:push` |
 | `The engine-mode of the Prisma Client` / Fehler beim Start | Node-Version zu alt | Node 20 oder 22 wählen und neu starten |
 
 Zum Prüfen ohne Weboberfläche lässt sich die Anwendung auch direkt starten – dann erscheint der
