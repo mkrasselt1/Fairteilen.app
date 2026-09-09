@@ -7,7 +7,7 @@ import { groupTypeOf } from "@/lib/categories";
 import { AvatarStack } from "@/components/ui";
 import { JoinForm } from "./join-form";
 
-export const metadata: Metadata = { title: "Gruppe beitreten" };
+export const metadata: Metadata = { title: "Gruppe beitreten", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function JoinPage({ params }: { params: Promise<{ token: string }> }) {

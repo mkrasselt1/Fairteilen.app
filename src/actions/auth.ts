@@ -29,7 +29,7 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const currency = String(formData.get("currency") ?? "EUR");
-  const next = String(formData.get("next") ?? "/");
+  const next = String(formData.get("next") ?? "/uebersicht");
 
   if (name.length < 2) return { error: "Bitte gib deinen Namen an." };
   if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
@@ -46,13 +46,13 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
   });
 
   await createSession(user.id);
-  redirect(next.startsWith("/") ? next : "/");
+  redirect(next.startsWith("/") ? next : "/uebersicht");
 }
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/");
+  const next = String(formData.get("next") ?? "/uebersicht");
 
   const user = await prisma.user.findUnique({ where: { email }, include: { oauthAccounts: true } });
   if (user && !user.passwordHash && user.oauthAccounts.length > 0) {
@@ -66,7 +66,7 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   }
 
   await createSession(user.id);
-  redirect(next.startsWith("/") ? next : "/");
+  redirect(next.startsWith("/") ? next : "/uebersicht");
 }
 
 export async function logoutAction(): Promise<void> {

@@ -50,7 +50,7 @@ export async function createGroupAction(_prev: ActionState, formData: FormData):
   await ensureFriendships([user.id, ...invited.map((u) => u.id)]);
   await logActivity({ type: "group_created", actorId: user.id, groupId: group.id, payload: { name } });
 
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   redirect(`/gruppen/${group.id}`);
 }
 
@@ -125,7 +125,7 @@ export async function joinGroupAction(_prev: ActionState, formData: FormData): P
     await logActivity({ type: "member_joined", actorId: user.id, groupId: group.id, payload: { name: user.name } });
   }
 
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   redirect(`/gruppen/${group.id}`);
 }
 
@@ -154,7 +154,7 @@ export async function leaveGroupAction(_prev: ActionState, formData: FormData): 
   await logActivity({ type: "member_left", actorId: user.id, groupId, payload: { name: target?.name ?? "" } });
 
   if (targetUserId === user.id) {
-    revalidatePath("/");
+    revalidatePath("/uebersicht");
     redirect("/");
   }
   revalidatePath(`/gruppen/${groupId}`);
@@ -181,7 +181,7 @@ export async function setGroupArchivedAction(_prev: ActionState, formData: FormD
     payload: { name: group.name },
   });
 
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   revalidatePath("/gruppen");
   revalidatePath(`/gruppen/${groupId}`);
   return {
@@ -200,6 +200,6 @@ export async function deleteGroupAction(_prev: ActionState, formData: FormData):
   }
 
   await prisma.group.delete({ where: { id: groupId } });
-  revalidatePath("/");
-  redirect("/");
+  revalidatePath("/uebersicht");
+  redirect("/uebersicht");
 }

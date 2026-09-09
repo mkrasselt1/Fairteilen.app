@@ -155,7 +155,7 @@ export function SettleForm({
       <FormAlert state={state} />
       <div className="flex gap-2">
         <SubmitButton className="btn-primary">Zahlung speichern</SubmitButton>
-        <Link href={groupId ? `/gruppen/${groupId}` : "/"} className="btn-secondary">
+        <Link href={groupId ? `/gruppen/${groupId}` : "/uebersicht"} className="btn-secondary">
           Abbrechen
         </Link>
       </div>

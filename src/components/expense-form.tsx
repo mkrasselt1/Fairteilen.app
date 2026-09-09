@@ -584,7 +584,7 @@ export function ExpenseForm({
 
       <div className="flex flex-wrap gap-2">
         <SubmitButton className="btn-primary">{initial ? "Änderungen speichern" : "Ausgabe speichern"}</SubmitButton>
-        <Link href={groupId ? `/gruppen/${groupId}` : "/"} className="btn-secondary">
+        <Link href={groupId ? `/gruppen/${groupId}` : "/uebersicht"} className="btn-secondary">
           Abbrechen
         </Link>
       </div>

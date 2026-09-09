@@ -62,7 +62,7 @@ async function handle(request: Request, provider: OAuthProvider): Promise<Respon
   const store = await cookies();
   const storedState = store.get("fairteilen_oauth_state")?.value;
   const nonce = store.get("fairteilen_oauth_nonce")?.value;
-  const next = store.get("fairteilen_oauth_next")?.value ?? "/";
+  const next = store.get("fairteilen_oauth_next")?.value ?? "/uebersicht";
   for (const name of ["fairteilen_oauth_state", "fairteilen_oauth_nonce", "fairteilen_oauth_next"]) {
     store.delete(name);
   }

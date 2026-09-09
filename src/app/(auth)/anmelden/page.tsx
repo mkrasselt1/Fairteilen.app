@@ -13,7 +13,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; fehler?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (user) redirect("/");
+  if (user) redirect("/uebersicht");
   const { next, fehler } = await searchParams;
 
   return (
@@ -34,8 +34,8 @@ export default async function LoginPage({
           {fehler}
         </p>
       )}
-      <LoginForm next={next ?? "/"} />
-      <OAuthButtons next={next ?? "/"} />
+      <LoginForm next={next ?? "/uebersicht"} />
+      <OAuthButtons next={next ?? "/uebersicht"} />
       {registrationOpen() && (
         <p className="text-center text-sm text-slate-500 dark:text-slate-400">
           Noch kein Konto?{" "}

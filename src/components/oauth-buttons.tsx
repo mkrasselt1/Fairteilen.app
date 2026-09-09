@@ -29,7 +29,7 @@ function AppleMark() {
 }
 
 /** Anmeldeknöpfe – erscheinen nur, wenn der jeweilige Anbieter eingerichtet ist. */
-export function OAuthButtons({ next = "/", intent = "login" }: { next?: string; intent?: "login" | "link" }) {
+export function OAuthButtons({ next = "/uebersicht", intent = "login" }: { next?: string; intent?: "login" | "link" }) {
   const providers = configuredProviders();
   if (providers.length === 0) return null;
 

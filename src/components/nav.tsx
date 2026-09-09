@@ -8,7 +8,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { logoutAction } from "@/actions/auth";
 
 const LINKS = [
-  { href: "/", label: "Übersicht", icon: "🏠" },
+  { href: "/uebersicht", label: "Übersicht", icon: "🏠" },
   { href: "/gruppen", label: "Gruppen", icon: "👥" },
   { href: "/freunde", label: "Freunde", icon: "🧑‍🤝‍🧑" },
   { href: "/aktivitaet", label: "Aktivität", icon: "🔔" },
@@ -16,7 +16,7 @@ const LINKS = [
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return href === "/uebersicht" ? pathname === "/uebersicht" : pathname.startsWith(href);
 }
 
 export function TopBar({ user }: { user: { id: string; name: string; email: string; avatarColor: string } }) {
@@ -26,7 +26,7 @@ export function TopBar({ user }: { user: { id: string; name: string; email: stri
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
-        <Link href="/" className="flex items-center gap-2 font-bold text-brand-600 dark:text-brand-400">
+        <Link href="/uebersicht" className="flex items-center gap-2 font-bold text-brand-600 dark:text-brand-400">
           <span aria-hidden className="text-xl">🤝</span>
           <span>Fairteilen</span>
         </Link>

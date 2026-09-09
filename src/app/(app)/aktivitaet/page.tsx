@@ -75,7 +75,7 @@ export default async function ActivityPage() {
               ? `/ausgaben/${activity.expenseId}`
               : activity.groupId
                 ? `/gruppen/${activity.groupId}`
-                : "/";
+                : "/uebersicht";
             return (
               <Link
                 key={activity.id}

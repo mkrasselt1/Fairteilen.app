@@ -7,8 +7,9 @@ import { groupTypeOf } from "@/lib/categories";
 import { Avatar, AvatarStack, BalancePills, EmptyState, SectionTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Übersicht" };
 
-export default async function DashboardPage() {
+export default async function OverviewPage() {
   const user = await requireUser();
   await materializeRecurringExpenses(user.id);
 

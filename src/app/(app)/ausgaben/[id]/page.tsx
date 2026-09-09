@@ -27,7 +27,7 @@ export default async function ExpensePage({ params }: { params: Promise<{ id: st
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-        <Link href={expense.group ? `/gruppen/${expense.group.id}` : "/"} className="hover:underline">
+        <Link href={expense.group ? `/gruppen/${expense.group.id}` : "/uebersicht"} className="hover:underline">
           ← {expense.group ? expense.group.name : "Übersicht"}
         </Link>
       </div>

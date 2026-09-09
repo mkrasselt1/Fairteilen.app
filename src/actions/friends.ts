@@ -18,7 +18,7 @@ export async function addFriendAction(_prev: ActionState, formData: FormData): P
   }
 
   await ensureFriendships([user.id, friend.id]);
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   return { success: `${friend.name} ist jetzt in deiner Kontaktliste.` };
 }
 
@@ -44,6 +44,6 @@ export async function removeFriendAction(_prev: ActionState, formData: FormData)
       ],
     },
   });
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   return { success: "Kontakt entfernt." };
 }

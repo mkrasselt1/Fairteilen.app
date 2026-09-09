@@ -234,7 +234,7 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
 
   await ensureFriendships(shares.map((s) => s.userId));
 
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   revalidatePath("/aktivitaet");
   if (parsed.groupId) revalidatePath(`/gruppen/${parsed.groupId}`);
   redirect(parsed.groupId ? `/gruppen/${parsed.groupId}` : `/ausgaben/${expenseId}`);
@@ -261,13 +261,13 @@ export async function deleteExpenseAction(_prev: ActionState, formData: FormData
     payload: { description: expense.description, amountCents: expense.amountCents, currency: expense.currency },
   });
 
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   revalidatePath("/aktivitaet");
   if (expense.groupId) {
     revalidatePath(`/gruppen/${expense.groupId}`);
     redirect(`/gruppen/${expense.groupId}`);
   }
-  redirect("/");
+  redirect("/uebersicht");
 }
 
 export async function restoreExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -283,7 +283,7 @@ export async function restoreExpenseAction(_prev: ActionState, formData: FormDat
   if (!expense) return { error: "Diese Ausgabe kann nicht wiederhergestellt werden." };
 
   await prisma.expense.update({ where: { id: expenseId }, data: { deletedAt: null } });
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   if (expense.groupId) revalidatePath(`/gruppen/${expense.groupId}`);
   return { success: "Ausgabe wiederhergestellt." };
 }
@@ -347,7 +347,7 @@ export async function settleUpAction(_prev: ActionState, formData: FormData): Pr
     payload: { from: from.name, to: to.name, amountCents, currency },
   });
 
-  revalidatePath("/");
+  revalidatePath("/uebersicht");
   revalidatePath("/aktivitaet");
   if (groupId) {
     revalidatePath(`/gruppen/${groupId}`);

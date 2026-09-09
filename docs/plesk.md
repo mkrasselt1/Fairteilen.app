@@ -178,6 +178,50 @@ cd /var/www/vhosts/fairteilen.app/httpdocs
 node app.js
 ```
 
+### `GLIBC_2.38 not found` bei den Bereitstellungsaktionen
+
+Vollständig lautet die Meldung etwa:
+
+```
+-: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by -)
+```
+
+Das heißt: Ein aufgerufenes Programm wurde für eine neuere C-Bibliothek übersetzt, als auf dem
+Server installiert ist. Fast immer ist es ein **anderes Node als das in Plesk ausgewählte** –
+die zusätzlichen Bereitstellungsaktionen laufen in einer einfachen Shell, in der `node` und `npm`
+auf eine fremde Installation zeigen können (etwa aus nvm oder einem manuell entpackten Archiv).
+Mit der Anwendung selbst hat der Fehler nichts zu tun.
+
+Erst prüfen, per SSH:
+
+```bash
+ldd --version | head -1        # welche glibc der Server hat
+which -a node npm              # was in dieser Shell gefunden wird
+node -v                        # und welche Version das ist
+ls /opt/plesk/node/            # die von Plesk verwalteten Node-Versionen
+```
+
+Ist die gefundene Node-Version neuer als das, was der Server tragen kann, gibt es zwei Wege:
+
+**Weg 1 – empfohlen: gar keine Bereitstellungsaktionen.**
+Das Feld *Zusätzliche Bereitstellungsaktionen* leer lassen. Git bringt dann nur die Dateien auf den
+Server; gebaut wird über die Node.js-Seite mit **NPM install** und dem Skript **`setup`**
+(siehe Abschnitt 5). Diese Knöpfe benutzen garantiert die in Plesk ausgewählte Node-Version.
+
+**Weg 2 – absolute Pfade in den Aktionen.**
+Wenn die Aktionen automatisch laufen sollen, Node nicht über den Suchpfad ansprechen, sondern
+direkt – die Versionsnummer an die eigene Installation anpassen:
+
+```bash
+export PATH=/opt/plesk/node/22/bin:$PATH
+cd /var/www/vhosts/fairteilen.app/httpdocs
+npm install
+npm run setup
+```
+
+Bleibt der Fehler, verrät ein manueller Durchlauf denselben Befehle per SSH den vollständigen
+Namen des betroffenen Programms – in der Plesk-Oberfläche ist er auf `-` gekürzt.
+
 ### Seite lädt, aber ohne Gestaltung
 Der Dokumentenstamm zeigt auf ein falsches Verzeichnis – er muss `/httpdocs/public` sein.
 

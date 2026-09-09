@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   }
 
   const url = new URL(request.url);
-  const nextParam = url.searchParams.get("next") ?? "/";
+  const nextParam = url.searchParams.get("next") ?? "/uebersicht";
   const next = nextParam.startsWith("/") ? nextParam : "/";
 
   const state = crypto.randomBytes(24).toString("base64url");

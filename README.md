@@ -8,6 +8,13 @@ braucht nicht einmal ein Konto.
 
 ## Funktionsumfang
 
+### Öffentlich
+- Startseite `/` mit Funktionsüberblick, Ablauf und häufigen Fragen
+- Rechner `/rechner`, siehe unten
+- Vorbereitet für Suchmaschinen: Titel und Beschreibungen je Seite, strukturierte Daten,
+  Vorschaubild, `robots.txt` und `sitemap.xml`; persönliche Bereiche stehen auf `noindex`.
+  Wie es weitergeht, steht in [docs/sichtbarkeit.md](docs/sichtbarkeit.md)
+
 ### Ohne Anmeldung (`/rechner`)
 - Personen und Ausgaben eintragen, Ergebnis sofort sehen
 - Alle fünf Aufteilungsarten mit Schiebereglern und grafischer Rückmeldung
@@ -181,6 +188,7 @@ npm run test:e2e
 ```
 src/
   app/
+    page.tsx        Öffentliche Startseite
     (app)/          Seiten mit Anmeldung: Übersicht, Gruppen, Freunde, Ausgaben, Konto …
     (auth)/         Anmelden und Registrieren
     rechner/        Gastmodus ohne Konto

@@ -7,7 +7,9 @@ import { GuestCalculator } from "./calculator";
 export const metadata: Metadata = {
   title: "Rechner ohne Anmeldung",
   description:
-    "Gemeinsame Ausgaben sofort aufteilen – ohne Konto, ohne Anmeldung. Alle Daten bleiben in deinem Browser.",
+    "Gemeinsame Ausgaben sofort aufteilen – ohne Konto, ohne Anmeldung. Rechnung durch mehrere Personen teilen, Salden sehen und wissen, wer wem wie viel schuldet. Alle Daten bleiben in deinem Browser.",
+  alternates: { canonical: "/rechner" },
+  keywords: ["Rechnung teilen", "Kosten aufteilen Rechner", "Ausgaben aufteilen ohne Anmeldung", "wer schuldet wem"],
 };
 
 export default async function CalculatorPage() {
@@ -17,14 +19,14 @@ export default async function CalculatorPage() {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
-          <Link href={user ? "/" : "/rechner"} className="flex items-center gap-2 font-bold text-brand-600 dark:text-brand-400">
+          <Link href={user ? "/uebersicht" : "/"} className="flex items-center gap-2 font-bold text-brand-600 dark:text-brand-400">
             <span aria-hidden className="text-xl">🤝</span> Fairteilen
           </Link>
           <span className="chip hidden sm:inline-flex">ohne Anmeldung</span>
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
             {user ? (
-              <Link href="/" className="btn-secondary !px-3 !py-1.5">
+              <Link href="/uebersicht" className="btn-secondary !px-3 !py-1.5">
                 Zu meinen Gruppen
               </Link>
             ) : (

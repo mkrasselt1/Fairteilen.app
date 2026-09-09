@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { BottomNav, FloatingAddButton, TopBar } from "@/components/nav";
+
+// Angemeldete Bereiche enthalten persönliche Daten und gehören nicht in Suchmaschinen.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();

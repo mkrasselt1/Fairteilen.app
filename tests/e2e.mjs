@@ -36,14 +36,21 @@ await page.waitForTimeout(300);
 const guestText = await page.locator("section", { hasText: "So wird ausgeglichen" }).first().innerText();
 check("Gastmodus rechnet Ausgleich", /Ben.*zahlt.*Anna.*15,0[01]/s.test(guestText), guestText.slice(0, 200));
 
+// 1b. Öffentliche Startseite muss ohne Anmeldung erreichbar und indexierbar sein
+const landing = await page.goto(`${BASE}/`);
+check("Startseite ohne Anmeldung erreichbar", landing.status() === 200, String(landing.status()));
+const landingHtml = await page.content();
+check("Startseite trägt strukturierte Daten", landingHtml.includes("SoftwareApplication") && landingHtml.includes("FAQPage"));
+check("Startseite ist nicht auf noindex", !/name="robots"[^>]*noindex/.test(landingHtml));
+
 // 2. Registrierung
 await page.goto(`${BASE}/registrieren`);
 await page.fill("#name", "Testerin Eins");
 await page.fill("#email", `test${stamp}@example.com`);
 await page.fill("#password", "supergeheim1");
 await page.getByRole("button", { name: "Konto erstellen" }).click();
-await page.waitForURL(`${BASE}/`, { timeout: 15000 });
-check("Registrierung führt zur Übersicht", page.url() === `${BASE}/`);
+await page.waitForURL(`${BASE}/uebersicht`, { timeout: 15000 });
+check("Registrierung führt zur Übersicht", page.url() === `${BASE}/uebersicht`);
 
 // 3. Gruppe anlegen
 await page.goto(`${BASE}/gruppen/neu`);
@@ -65,7 +72,7 @@ await page2.fill("#name", "Testerin Zwei");
 await page2.fill("#email", `zwei${stamp}@example.com`);
 await page2.fill("#password", "supergeheim2");
 await page2.getByRole("button", { name: "Konto erstellen" }).click();
-await page2.waitForURL(`${BASE}/`, { timeout: 15000 });
+await page2.waitForURL(`${BASE}/uebersicht`, { timeout: 15000 });
 await page2.goto(BASE + new URL(invite).pathname);
 await page2.getByRole("button", { name: "Gruppe beitreten" }).click();
 await page2.waitForURL(/\/gruppen\//, { timeout: 15000 });
@@ -121,7 +128,7 @@ const activity = await page.innerText("body");
 check("Aktivitätsverlauf zeigt Einträge", activity.includes("Hotel") && activity.includes("Testreise"), activity.slice(0, 200));
 
 // 10. Dunkles Design
-await page.goto(`${BASE}/`);
+await page.goto(`${BASE}/uebersicht`);
 await page.getByLabel("Dunkles Design").click();
 await page.waitForTimeout(200);
 check("Dunkles Design umschaltbar", await page.evaluate(() => document.documentElement.classList.contains("dark")));

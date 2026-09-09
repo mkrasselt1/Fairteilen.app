@@ -11,7 +11,7 @@ export default function NotFound() {
         Diese Seite gibt es nicht – oder du hast keinen Zugriff darauf.
       </p>
       <Link href="/" className="btn-primary">
-        Zur Übersicht
+        Zur Startseite
       </Link>
     </div>
   );
