@@ -111,9 +111,12 @@ export async function getFriendsWithBalances(userId: string) {
     });
 }
 
-export async function getUserGroups(userId: string) {
+export async function getUserGroups(userId: string, options: { archived?: boolean } = {}) {
   const memberships = await prisma.groupMember.findMany({
-    where: { userId },
+    where: {
+      userId,
+      group: options.archived === undefined ? {} : options.archived ? { NOT: { archivedAt: null } } : { archivedAt: null },
+    },
     include: {
       group: {
         include: {

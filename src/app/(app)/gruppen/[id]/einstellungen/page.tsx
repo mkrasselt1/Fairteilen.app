@@ -8,7 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { Avatar } from "@/components/ui";
 import { CopyButton, ConfirmForm } from "@/components/forms";
 import { deleteGroupAction, leaveGroupAction } from "@/actions/groups";
-import { GroupSettingsForm, AddMemberForm, RegenerateInviteForm } from "./forms";
+import { GroupSettingsForm, AddMemberForm, RegenerateInviteForm, ArchiveForm } from "./forms";
 
 export const metadata: Metadata = { title: "Gruppeneinstellungen" };
 export const dynamic = "force-dynamic";
@@ -122,6 +122,16 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
         <div className="mt-4">
           <AddMemberForm groupId={group.id} />
         </div>
+      </section>
+
+      <section className="card p-5">
+        <h2 className="mb-1 font-semibold">Archiv</h2>
+        <p className="hint mb-3">
+          {group.archivedAt
+            ? "Diese Gruppe liegt im Archiv. Sie ist weiterhin nutzbar und zählt zu den Salden."
+            : "Abgeschlossene Abrechnungen kannst du archivieren: Sie verschwinden aus der Gruppenliste, bleiben aber vollständig erhalten und zählen weiter zu den Salden."}
+        </p>
+        <ArchiveForm groupId={group.id} archived={group.archivedAt !== null} />
       </section>
 
       <section className="card space-y-4 p-5">

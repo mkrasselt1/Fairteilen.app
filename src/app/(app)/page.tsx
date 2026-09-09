@@ -14,7 +14,7 @@ export default async function DashboardPage() {
 
   const [summary, groups, friends] = await Promise.all([
     getOverallSummary(user.id),
-    getUserGroups(user.id),
+    getUserGroups(user.id, { archived: false }),
     getFriendsWithBalances(user.id),
   ]);
 

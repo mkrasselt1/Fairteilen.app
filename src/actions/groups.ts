@@ -161,6 +161,36 @@ export async function leaveGroupAction(_prev: ActionState, formData: FormData): 
   return { success: `${target?.name ?? "Mitglied"} wurde entfernt.` };
 }
 
+export async function setGroupArchivedAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  const archived = String(formData.get("archived") ?? "") === "true";
+
+  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
+  if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
+
+  const group = await prisma.group.update({
+    where: { id: groupId },
+    data: { archivedAt: archived ? new Date() : null },
+    select: { name: true },
+  });
+  await logActivity({
+    type: archived ? "group_archived" : "group_restored",
+    actorId: user.id,
+    groupId,
+    payload: { name: group.name },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/gruppen");
+  revalidatePath(`/gruppen/${groupId}`);
+  return {
+    success: archived
+      ? "Gruppe archiviert. Sie zählt weiter zu deinen Salden, erscheint aber nur noch im Archiv."
+      : "Gruppe wieder aktiv.",
+  };
+}
+
 export async function deleteGroupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const groupId = String(formData.get("groupId") ?? "");

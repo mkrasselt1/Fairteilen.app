@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { addMemberAction, regenerateInviteAction, updateGroupAction } from "@/actions/groups";
+import {
+  addMemberAction,
+  regenerateInviteAction,
+  setGroupArchivedAction,
+  updateGroupAction,
+} from "@/actions/groups";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { GROUP_TYPES } from "@/lib/categories";
 import { CURRENCIES } from "@/lib/money";
@@ -98,6 +103,20 @@ export function RegenerateInviteForm({ groupId }: { groupId: string }) {
       <input type="hidden" name="groupId" value={groupId} />
       <SubmitButton className="btn-ghost !px-0 text-sm" pendingLabel="…">
         Neuen Link erzeugen
+      </SubmitButton>
+      <FormAlert state={state} />
+    </form>
+  );
+}
+
+export function ArchiveForm({ groupId, archived }: { groupId: string; archived: boolean }) {
+  const [state, formAction] = useActionState(setGroupArchivedAction, null);
+  return (
+    <form action={formAction} className="space-y-2">
+      <input type="hidden" name="groupId" value={groupId} />
+      <input type="hidden" name="archived" value={archived ? "false" : "true"} />
+      <SubmitButton className="btn-secondary" pendingLabel="…">
+        {archived ? "Aus dem Archiv holen" : "Gruppe archivieren"}
       </SubmitButton>
       <FormAlert state={state} />
     </form>

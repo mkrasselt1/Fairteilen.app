@@ -31,6 +31,16 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6">
+      {group.archivedAt && (
+        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+          Diese Gruppe ist archiviert. Sie lässt sich weiter nutzen und zählt zu deinen Salden – in der Gruppenliste
+          steht sie im Archiv.{" "}
+          <Link href={`/gruppen/${group.id}/einstellungen`} className="font-semibold underline">
+            In den Einstellungen wieder aktivieren
+          </Link>
+        </p>
+      )}
+
       <section className="card p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">

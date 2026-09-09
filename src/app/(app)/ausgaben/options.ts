@@ -22,12 +22,16 @@ export async function getExpenseFormOptions(userId: string): Promise<{
   ]);
 
   return {
-    groups: memberships.map((m) => ({
-      id: m.group.id,
-      name: m.group.name,
-      currency: m.group.currency,
-      members: m.group.members.map((member) => member.user),
-    })),
+    // Archivierte Gruppen bleiben auswählbar, stehen aber am Ende und sind gekennzeichnet.
+    groups: memberships
+      .map((m) => ({
+        id: m.group.id,
+        name: m.group.archivedAt ? `${m.group.name} (archiviert)` : m.group.name,
+        currency: m.group.currency,
+        archived: m.group.archivedAt !== null,
+        members: m.group.members.map((member) => member.user),
+      }))
+      .sort((a, b) => Number(a.archived) - Number(b.archived)),
     friends: friendships
       .map((f) => f.friend)
       .sort((a, b) => a.name.localeCompare(b.name)),

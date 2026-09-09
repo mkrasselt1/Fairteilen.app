@@ -18,6 +18,7 @@ export type ExpenseFormGroup = {
   id: string;
   name: string;
   currency: string;
+  archived?: boolean;
   members: PersonOption[];
 };
 

@@ -37,6 +37,10 @@ function describe(
       return { icon: "↩️", text: `${actor} hat eine Zahlung gelöscht.` };
     case "group_created":
       return { icon: "👥", text: `${actor} hat die Gruppe „${payload.name}“ erstellt.` };
+    case "group_archived":
+      return { icon: "📦", text: `${actor} hat „${payload.name}“ archiviert.` };
+    case "group_restored":
+      return { icon: "📂", text: `${actor} hat „${payload.name}“ aus dem Archiv geholt.` };
     case "member_joined":
       return { icon: "🙋", text: `${payload.name ?? actor} ist der Gruppe beigetreten.` };
     case "member_left":
