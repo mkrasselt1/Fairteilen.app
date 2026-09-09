@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Fairteilen">
+  <rect width="512" height="512" fill="#2f9e6f"/>
+  <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round">
+    <path d="M256 140v240"/>
+    <path d="M166 196h180"/>
+    <circle cx="196" cy="312" r="50"/>
+    <circle cx="316" cy="312" r="50"/>
+  </g>
+</svg>

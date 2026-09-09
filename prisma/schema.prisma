@@ -1,0 +1,169 @@
+// Fairteilen.app – Datenmodell
+// Standard: SQLite (keine Konfiguration nötig). Für Produktion: `npm run use:postgres`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  passwordHash  String
+  currency      String   @default("EUR")
+  locale        String   @default("de")
+  avatarColor   String   @default("#2f9e6f")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions          Session[]
+  memberships       GroupMember[]
+  createdGroups     Group[]        @relation("GroupCreator")
+  createdExpenses   Expense[]      @relation("ExpenseCreator")
+  shares            ExpenseShare[]
+  comments          Comment[]
+  activities        Activity[]     @relation("ActivityActor")
+  friendshipsFrom   Friendship[]   @relation("FriendshipUser")
+  friendshipsTo     Friendship[]   @relation("FriendshipFriend")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Direkte Verbindung zwischen zwei Nutzer:innen (beidseitig gespeichert).
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+}
+
+model Group {
+  id            String   @id @default(cuid())
+  name          String
+  type          String   @default("other") // trip | home | couple | event | project | other
+  currency      String   @default("EUR")
+  simplifyDebts Boolean  @default(true)
+  inviteToken   String   @unique
+  createdById   String
+  archivedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy  User          @relation("GroupCreator", fields: [createdById], references: [id])
+  members    GroupMember[]
+  expenses   Expense[]
+  activities Activity[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  groupId  String
+  userId   String
+  role     String   @default("member") // owner | member
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  groupId     String?
+  description String
+  amountCents Int
+  currency    String   @default("EUR")
+  date        DateTime @default(now())
+  category    String   @default("general")
+  notes       String?
+  splitType   String   @default("equal") // equal | exact | percent | shares | adjustment
+  isPayment   Boolean  @default(false)
+  createdById String
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  recurrence      String?   // none | daily | weekly | monthly | yearly
+  recurrenceUntil DateTime?
+  nextOccurrence  DateTime?
+  recurringFromId String?
+
+  group     Group?         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy User           @relation("ExpenseCreator", fields: [createdById], references: [id])
+  shares    ExpenseShare[]
+  comments  Comment[]
+  activities Activity[]
+
+  @@index([groupId])
+  @@index([date])
+}
+
+/// Ein Datensatz pro beteiligter Person und Ausgabe:
+/// paidCents = tatsächlich bezahlt, oweCents = rechnerischer Anteil.
+model ExpenseShare {
+  id        String @id @default(cuid())
+  expenseId String
+  userId    String
+  paidCents Int    @default(0)
+  oweCents  Int    @default(0)
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  expenseId String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String // expense_added | expense_updated | expense_deleted | payment_added |
+                   // group_created | member_joined | member_left | comment_added
+  actorId   String
+  groupId   String?
+  expenseId String?
+  payload   String   @default("{}")
+  createdAt DateTime @default(now())
+
+  actor   User     @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  group   Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  expense Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([groupId])
+}
