@@ -76,6 +76,10 @@ npx prisma db push
 npm run build && npm start
 ```
 
+### Plesk / Phusion Passenger
+Die Startdatei `app.js` liegt bei – die vollständige Anleitung steht in
+[docs/plesk.md](docs/plesk.md).
+
 ### Vercel, Railway, Fly.io & Co.
 Ein normales Next.js-Projekt: Repository verbinden, `DATABASE_URL` (Postgres), `AUTH_SECRET` und
 `APP_URL` setzen, fertig. `npm run build` erzeugt den Prisma-Client automatisch mit.
@@ -139,6 +143,16 @@ npm run build       # Produktions-Build
 npm run db:studio   # Prisma Studio
 ```
 
+Zusätzlich gibt es einen durchgängigen Browsertest (Registrierung, Gruppe, Einladungslink,
+Ausgaben mit gleicher und prozentualer Aufteilung, Salden, Gastmodus). Er braucht Playwright,
+das bewusst keine feste Abhängigkeit ist:
+
+```bash
+npm install --no-save playwright && npx playwright install chromium
+npm run build && npm start     # in einem zweiten Terminal
+npm run test:e2e
+```
+
 ### Projektstruktur
 
 ```
@@ -153,7 +167,7 @@ src/
   components/       Wiederverwendete Oberfläche
   lib/              Rechenkern, Datenzugriff, Anmeldung, OAuth, Formatierung
 prisma/             Datenmodell und Beispieldaten
-tests/              Tests (node:test)
+tests/              Tests (node:test) und Browsertest
 ```
 
 ---
