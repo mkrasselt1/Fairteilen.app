@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, registrationOpen } from "@/lib/auth";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = { title: "Registrieren" };
@@ -38,6 +39,7 @@ export default async function RegisterPage({
         </p>
       </div>
       <RegisterForm next={next ?? "/"} />
+      <OAuthButtons next={next ?? "/"} />
       <p className="text-center text-sm text-slate-500 dark:text-slate-400">
         Schon ein Konto?{" "}
         <Link href="/anmelden" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">

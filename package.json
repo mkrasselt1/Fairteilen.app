@@ -15,7 +15,7 @@
     "db:seed": "node --experimental-strip-types prisma/seed.ts",
     "postinstall": "prisma generate",
     "use:postgres": "node scripts/use-postgres.mjs",
-    "test": "node --test --experimental-strip-types \"tests/**/*.test.ts\""
+    "test": "node --test --experimental-strip-types --conditions=react-server \"tests/**/*.test.ts\""
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

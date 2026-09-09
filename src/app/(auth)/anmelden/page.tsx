@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, registrationOpen } from "@/lib/auth";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Anmelden" };
@@ -9,11 +10,11 @@ export const metadata: Metadata = { title: "Anmelden" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; fehler?: string }>;
 }) {
   const user = await getCurrentUser();
   if (user) redirect("/");
-  const { next } = await searchParams;
+  const { next, fehler } = await searchParams;
 
   return (
     <div className="space-y-6">
@@ -28,7 +29,13 @@ export default async function LoginPage({
           Melde dich an, um deine Gruppen und Salden zu sehen.
         </p>
       </div>
+      {fehler && (
+        <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">
+          {fehler}
+        </p>
+      )}
       <LoginForm next={next ?? "/"} />
+      <OAuthButtons next={next ?? "/"} />
       {registrationOpen() && (
         <p className="text-center text-sm text-slate-500 dark:text-slate-400">
           Noch kein Konto?{" "}

@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { changePasswordAction, deleteAccountAction, updateProfileAction } from "@/actions/auth";
+import {
+  changePasswordAction,
+  deleteAccountAction,
+  unlinkOAuthAction,
+  updateProfileAction,
+} from "@/actions/auth";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { CURRENCIES } from "@/lib/money";
 
@@ -39,15 +44,23 @@ export function ProfileForm({ user }: { user: { name: string; email: string; cur
   );
 }
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({ hasPassword = true }: { hasPassword?: boolean }) {
   const [state, formAction] = useActionState(changePasswordAction, null);
   return (
     <form action={formAction} className="space-y-4">
       <div>
         <label className="label" htmlFor="current">
-          Aktuelles Passwort
+          Aktuelles Passwort {!hasPassword && <span className="hint">(nicht nötig)</span>}
         </label>
-        <input id="current" name="current" type="password" autoComplete="current-password" required className="input" />
+        <input
+          id="current"
+          name="current"
+          type="password"
+          autoComplete="current-password"
+          required={hasPassword}
+          disabled={!hasPassword}
+          className="input"
+        />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -80,12 +93,12 @@ export function ChangePasswordForm() {
         </div>
       </div>
       <FormAlert state={state} />
-      <SubmitButton className="btn-secondary">Passwort ändern</SubmitButton>
+      <SubmitButton className="btn-secondary">{hasPassword ? "Passwort ändern" : "Passwort setzen"}</SubmitButton>
     </form>
   );
 }
 
-export function DeleteAccountForm() {
+export function DeleteAccountForm({ hasPassword = true }: { hasPassword?: boolean }) {
   const [state, formAction] = useActionState(deleteAccountAction, null);
   return (
     <form
@@ -95,18 +108,39 @@ export function DeleteAccountForm() {
       }}
       className="space-y-3"
     >
-      <input
-        name="password"
-        type="password"
-        required
-        className="input sm:w-64"
-        placeholder="Passwort zur Bestätigung"
-        autoComplete="current-password"
-      />
+      {hasPassword && (
+        <input
+          name="password"
+          type="password"
+          required
+          className="input sm:w-64"
+          placeholder="Passwort zur Bestätigung"
+          autoComplete="current-password"
+        />
+      )}
       <FormAlert state={state} />
       <SubmitButton className="btn-danger" pendingLabel="Wird gelöscht …">
         Konto endgültig löschen
       </SubmitButton>
+    </form>
+  );
+}
+
+export function UnlinkForm({ provider, label }: { provider: string; label: string }) {
+  const [state, formAction] = useActionState(unlinkOAuthAction, null);
+  return (
+    <form
+      action={formAction}
+      onSubmit={(event) => {
+        if (!window.confirm(`Verknüpfung mit ${label} entfernen?`)) event.preventDefault();
+      }}
+      className="flex flex-col items-end gap-1"
+    >
+      <input type="hidden" name="provider" value={provider} />
+      <SubmitButton className="btn-ghost !px-2 !py-1 text-xs" pendingLabel="…">
+        Trennen
+      </SubmitButton>
+      {state?.error && <span className="negative text-xs">{state.error}</span>}
     </form>
   );
 }

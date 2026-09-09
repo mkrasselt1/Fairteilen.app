@@ -52,7 +52,13 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/");
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email }, include: { oauthAccounts: true } });
+  if (user && !user.passwordHash && user.oauthAccounts.length > 0) {
+    const providers = [...new Set(user.oauthAccounts.map((a) => (a.provider === "apple" ? "Apple" : "Google")))];
+    return {
+      error: `Dieses Konto ist mit ${providers.join(" und ")} verknüpft. Melde dich darüber an – ein Passwort kannst du danach in den Kontoeinstellungen setzen.`,
+    };
+  }
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return { error: "E-Mail-Adresse oder Passwort ist falsch." };
   }
@@ -94,7 +100,10 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
   if (next !== repeat) return { error: "Die beiden neuen Passwörter stimmen nicht überein." };
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: sessionUser.id } });
-  if (!verifyPassword(current, user.passwordHash)) return { error: "Das aktuelle Passwort ist falsch." };
+  // Konten aus Google-/Apple-Anmeldung haben noch kein Passwort und können eines setzen.
+  if (user.passwordHash && !verifyPassword(current, user.passwordHash)) {
+    return { error: "Das aktuelle Passwort ist falsch." };
+  }
 
   await prisma.$transaction([
     prisma.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(next) } }),
@@ -108,7 +117,9 @@ export async function deleteAccountAction(_prev: ActionState, formData: FormData
   const sessionUser = await requireUser();
   const password = String(formData.get("password") ?? "");
   const user = await prisma.user.findUniqueOrThrow({ where: { id: sessionUser.id } });
-  if (!verifyPassword(password, user.passwordHash)) return { error: "Das Passwort ist falsch." };
+  if (user.passwordHash && !verifyPassword(password, user.passwordHash)) {
+    return { error: "Das Passwort ist falsch." };
+  }
 
   const shares = await prisma.expenseShare.findMany({
     where: { userId: user.id, expense: { deletedAt: null } },
@@ -122,4 +133,23 @@ export async function deleteAccountAction(_prev: ActionState, formData: FormData
   await prisma.user.delete({ where: { id: user.id } });
   await destroySession();
   redirect("/anmelden");
+}
+
+export async function unlinkOAuthAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const sessionUser = await requireUser();
+  const provider = String(formData.get("provider") ?? "");
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: sessionUser.id },
+    include: { oauthAccounts: true },
+  });
+
+  const remaining = user.oauthAccounts.filter((account) => account.provider !== provider);
+  if (!user.passwordHash && remaining.length === 0) {
+    return { error: "Setze zuerst ein Passwort – sonst könntest du dich nicht mehr anmelden." };
+  }
+
+  await prisma.oAuthAccount.deleteMany({ where: { userId: user.id, provider } });
+  revalidatePath("/konto");
+  return { success: "Verknüpfung entfernt." };
 }

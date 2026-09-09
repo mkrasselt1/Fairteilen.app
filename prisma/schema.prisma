@@ -14,7 +14,8 @@ model User {
   id            String   @id @default(cuid())
   email         String   @unique
   name          String
-  passwordHash  String
+  /// Optional: Konten, die nur über Google oder Apple angemeldet werden, haben kein Passwort.
+  passwordHash  String?
   currency      String   @default("EUR")
   locale        String   @default("de")
   avatarColor   String   @default("#2f9e6f")
@@ -22,6 +23,7 @@ model User {
   updatedAt     DateTime @updatedAt
 
   sessions          Session[]
+  oauthAccounts     OAuthAccount[]
   memberships       GroupMember[]
   createdGroups     Group[]        @relation("GroupCreator")
   createdExpenses   Expense[]      @relation("ExpenseCreator")
@@ -41,6 +43,21 @@ model Session {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+/// Verknüpftes Konto bei einem externen Anbieter (Google, Apple).
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String // google | apple
+  providerAccountId String
+  email             String?
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
   @@index([userId])
 }
 

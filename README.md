@@ -1,0 +1,174 @@
+# 🤝 Fairteilen.app
+
+**Freie, quelloffene App zum Teilen gemeinsamer Ausgaben.** Funktional an Splitwise orientiert –
+ohne Werbung, ohne Abo, ohne Limits und selbst hostbar. Wer nur schnell etwas ausrechnen will,
+braucht nicht einmal ein Konto.
+
+---
+
+## Funktionsumfang
+
+### Ohne Anmeldung (`/rechner`)
+- Personen und Ausgaben eintragen, Ergebnis sofort sehen
+- Alle fünf Aufteilungsarten, Salden und minimaler Ausgleichsplan
+- Ergebnis teilen (Web Share / Zwischenablage) und CSV-Download
+- **Es wird nichts an den Server gesendet** – der Stand liegt allein im `localStorage` des Browsers
+
+### Mit Konto
+| Bereich | Details |
+|---|---|
+| **Gruppen** | Reise, WG, Paar, Veranstaltung, Projekt; Einladungslink, Mitgliederverwaltung, Gruppenwährung |
+| **Ausgaben** | Beschreibung, Betrag, Datum, 26 Kategorien, Notizen, Kommentare |
+| **Zahlende** | eine oder mehrere Personen pro Ausgabe |
+| **Aufteilung** | gleich · exakte Beträge · Prozent · Anteile · Zu-/Abschläge |
+| **Salden** | pro Person, pro Gruppe und insgesamt – getrennt nach Währung |
+| **Ausgleich** | optionale Schuldenvereinfachung (minimale Anzahl Überweisungen) |
+| **Zahlungen** | „Begleichen“ erfasst echte Überweisungen und verrechnet sie |
+| **Wiederkehrend** | täglich, wöchentlich, monatlich, jährlich – mit optionalem Enddatum |
+| **Verlauf** | Aktivitätsfeed über alle Gruppen |
+| **Export** | CSV je Gruppe oder für alles |
+| **Konto** | Profil, Währung, Passwort, Google-/Apple-Verknüpfung, Löschung |
+| **Oberfläche** | Deutsch, responsiv, helles und dunkles Design, als PWA installierbar |
+
+### Anmeldung
+- E-Mail und Passwort (scrypt-Hash, signiertes Sitzungs-Cookie in der Datenbank)
+- Optional **Google** und **Apple** über OpenID Connect – direkt implementiert, ohne Fremd-Bibliothek,
+  inklusive Prüfung von Signatur, Aussteller, Empfänger, Laufzeit, `state` und `nonce`
+- Beides lässt sich mischen: ein über Google angelegtes Konto kann später ein Passwort setzen
+
+---
+
+## Schnellstart
+
+```bash
+git clone https://github.com/mkrasselt1/Fairteilen.app.git
+cd Fairteilen.app
+npm install
+cp .env.example .env          # AUTH_SECRET setzen: openssl rand -base64 48
+npx prisma db push            # legt die SQLite-Datei an
+npm run db:seed               # optional: Beispieldaten
+npm run dev                   # http://localhost:3000
+```
+
+Die Beispieldaten legen drei Konten an – Passwort jeweils `fairteilen`:
+`alex@example.com`, `jamie@example.com`, `robin@example.com`.
+
+---
+
+## Betrieb
+
+### Docker
+
+```bash
+echo "AUTH_SECRET=$(openssl rand -base64 48)" > .env
+echo "APP_URL=https://fairteilen.example"    >> .env
+docker compose up -d --build
+```
+
+SQLite liegt dann im Volume `fairteilen-data`. Für Sicherungen genügt es, die Datei zu kopieren.
+
+### PostgreSQL statt SQLite
+
+```bash
+npm run use:postgres
+# DATABASE_URL in .env auf die Postgres-Instanz zeigen lassen
+npx prisma db push
+npm run build && npm start
+```
+
+### Vercel, Railway, Fly.io & Co.
+Ein normales Next.js-Projekt: Repository verbinden, `DATABASE_URL` (Postgres), `AUTH_SECRET` und
+`APP_URL` setzen, fertig. `npm run build` erzeugt den Prisma-Client automatisch mit.
+
+---
+
+## Umgebungsvariablen
+
+| Variable | Pflicht | Bedeutung |
+|---|---|---|
+| `DATABASE_URL` | ja | `file:./dev.db` (SQLite) oder `postgresql://…` |
+| `AUTH_SECRET` | ja | Signiert die Sitzungs-Cookies, mindestens 32 Zeichen |
+| `APP_URL` | empfohlen | Öffentliche Basis-URL – für Einladungs- und OAuth-Links |
+| `ALLOW_REGISTRATION` | nein | `false` schließt die Registrierung (Beitritt nur per Einladungslink) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | nein | aktiviert „Mit Google anmelden“ |
+| `APPLE_CLIENT_ID` / `APPLE_TEAM_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY` | nein | aktiviert „Mit Apple anmelden“ |
+
+Sind die Werte eines Anbieters nicht gesetzt, erscheint dessen Knopf gar nicht erst.
+
+### Google einrichten
+1. Google Cloud Console → *APIs & Dienste* → *Anmeldedaten* → **OAuth-Client-ID** (Webanwendung)
+2. Autorisierter Redirect-URI: `https://DEINE-DOMAIN/api/auth/google/callback`
+3. `GOOGLE_CLIENT_ID` und `GOOGLE_CLIENT_SECRET` setzen
+
+### Apple einrichten
+1. Apple Developer → **Services ID** anlegen (das ist `APPLE_CLIENT_ID`)
+2. *Sign in with Apple* aktivieren, Return-URL `https://DEINE-DOMAIN/api/auth/apple/callback`
+   (Apple erlaubt ausschließlich HTTPS und keine `localhost`-Adressen)
+3. Unter *Keys* einen **Sign-in-with-Apple-Schlüssel** erzeugen, die `.p8`-Datei herunterladen
+4. `APPLE_TEAM_ID`, `APPLE_KEY_ID` und den Dateiinhalt als `APPLE_PRIVATE_KEY` setzen
+   (Zeilenumbrüche dürfen als `\n` geschrieben werden)
+
+---
+
+## Wie gerechnet wird
+
+- **Ganzzahlige Cent.** Es werden nirgends Gleitkommazahlen für Geld verwendet.
+- **Restcents nach größten Resten.** 10,00 € auf drei Personen ergibt 3,34 / 3,33 / 3,33 –
+  die Summe der Anteile entspricht immer exakt dem Gesamtbetrag.
+- **Je Ausgabe und Person** werden zwei Werte gespeichert: `paidCents` (tatsächlich bezahlt) und
+  `oweCents` (rechnerischer Anteil). Der Saldo ist die Differenz.
+- **Währungen werden nicht umgerechnet.** Salden entstehen je Währung getrennt, damit keine
+  schwankenden Wechselkurse in alte Abrechnungen geraten.
+- **Zahlungen** sind intern gewöhnliche Einträge mit `isPayment` – dadurch tauchen sie im Verlauf
+  auf und verrechnen sich automatisch.
+- **Schuldenvereinfachung** ist ein gieriges Verfahren (größte Gläubigerin trifft größten Schuldner)
+  und erzeugt höchstens `n − 1` Überweisungen.
+
+Der Rechenkern liegt in `src/lib/split.ts` und `src/lib/balances.ts` und ist frei von Framework- und
+Datenbankabhängigkeiten – deshalb nutzen ihn der Server und der Gastmodus im Browser gemeinsam.
+
+---
+
+## Entwicklung
+
+```bash
+npm run dev         # Entwicklungsserver
+npm test            # Tests für Rechenkern, Beträge und OAuth-Prüfung
+npm run typecheck   # TypeScript ohne Ausgabe prüfen
+npm run build       # Produktions-Build
+npm run db:studio   # Prisma Studio
+```
+
+### Projektstruktur
+
+```
+src/
+  app/
+    (app)/          Seiten mit Anmeldung: Übersicht, Gruppen, Freunde, Ausgaben, Konto …
+    (auth)/         Anmelden und Registrieren
+    rechner/        Gastmodus ohne Konto
+    beitreten/      Einladungslinks
+    api/            OAuth-Endpunkte und CSV-Export
+  actions/          Server Actions (Formularverarbeitung)
+  components/       Wiederverwendete Oberfläche
+  lib/              Rechenkern, Datenzugriff, Anmeldung, OAuth, Formatierung
+prisma/             Datenmodell und Beispieldaten
+tests/              Tests (node:test)
+```
+
+---
+
+## Datenschutz
+
+- Es werden nur die Daten gespeichert, die eingegeben werden: Name, E-Mail-Adresse und die Ausgaben.
+- Keine Analyse-Dienste, keine Werbung, keine Weitergabe an Dritte, keine externen Schriftarten.
+- Der Gastmodus kommt vollständig ohne Server aus.
+- Selbst gehostet bleiben alle Daten auf der eigenen Instanz.
+
+---
+
+## Lizenz
+
+[MIT](LICENSE) – Nutzung, Veränderung und Weitergabe sind ausdrücklich erwünscht.
+
+Fairteilen ist ein eigenständiges Projekt und steht in keiner Verbindung zu Splitwise Inc.

@@ -15,7 +15,8 @@ export function hashPassword(password: string): string {
   return `scrypt$16384$8$1$${salt.toString("base64")}$${derived.toString("base64")}`;
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
+export function verifyPassword(password: string, stored: string | null): boolean {
+  if (!stored) return false;
   try {
     const [scheme, n, r, p, salt, hash] = stored.split("$");
     if (scheme !== "scrypt") return false;
