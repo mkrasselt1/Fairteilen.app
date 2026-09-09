@@ -21,6 +21,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               "Schulden automatisch vereinfachen und mit einem Klick begleichen",
               "Wiederkehrende Ausgaben, Kommentare, Aktivitätsverlauf, CSV-Export",
               "Kostenlos, quelloffen und selbst hostbar – keine Werbung, kein Abo",
+              "Schnell-Rechner, der ganz ohne Konto funktioniert",
             ].map((item) => (
               <li key={item} className="flex gap-3">
                 <span aria-hidden>✓</span>

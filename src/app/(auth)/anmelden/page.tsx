@@ -37,6 +37,16 @@ export default async function LoginPage({
           </Link>
         </p>
       )}
+
+      <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center dark:border-slate-700">
+        <p className="text-sm font-medium">Nur schnell etwas ausrechnen?</p>
+        <p className="hint mt-1">
+          Der Rechner funktioniert ganz ohne Konto – alle Daten bleiben in deinem Browser.
+        </p>
+        <Link href="/rechner" className="btn-secondary mt-3 w-full">
+          Ohne Anmeldung aufteilen
+        </Link>
+      </div>
     </div>
   );
 }
