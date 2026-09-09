@@ -51,7 +51,10 @@ nach `/httpdocs`. Nach jedem Update gilt: `npm install` → `npm run build` → 
 
 ## 4. Umgebungsvariablen
 
-Unter *Benutzerdefinierte Umgebungsvariablen* → **[angeben]**:
+Es gibt zwei Wege – **einer davon genügt**. Sind Werte an beiden Stellen hinterlegt, gewinnt der
+aus Plesk.
+
+Diese Werte werden gebraucht:
 
 | Name | Wert |
 |---|---|
@@ -60,9 +63,39 @@ Unter *Benutzerdefinierte Umgebungsvariablen* → **[angeben]**:
 | `APP_URL` | `https://fairteilen.app` |
 | `NODE_ENV` | `production` |
 
+### Weg A: Datei `.env` im Anwendungsstamm — empfohlen
+
+Eine Datei `/httpdocs/.env` anlegen (Plesk → *Dateien*, oder per SSH `nano /httpdocs/.env`):
+
+```
+DATABASE_URL="mysql://fairteilen:PASSWORT@localhost:3306/fairteilen"
+AUTH_SECRET="hier-den-zufallswert-einsetzen"
+APP_URL="https://fairteilen.app"
+NODE_ENV="production"
+```
+
+Vorteile: Die Werte stehen auch den Befehlen aus dem Reiter *Node.js-Befehle ausführen* zur
+Verfügung – `npx prisma db push` braucht `DATABASE_URL`. Außerdem lassen sich lange Werte wie der
+Apple-Schlüssel bequem einfügen. Da der Dokumentenstamm auf `public` zeigt, ist die Datei nicht
+über das Web abrufbar.
+
+### Weg B: Plesk-Oberfläche
+
+*Websites & Domains* → **Node.js** → ganz unten **Benutzerdefinierte Umgebungsvariablen** →
+**[angeben]** → je Zeile Name und Wert eintragen → *OK* → **App neu starten**.
+
+Zu beachten: Zeilenumbrüche sind in diesem Dialog nicht möglich. Für `APPLE_PRIVATE_KEY` deshalb
+die Umbrüche als `\n` schreiben (die Anwendung setzt sie beim Start zurück) – oder gleich Weg A
+nutzen. Ob Plesk diese Variablen auch an den Reiter *Node.js-Befehle ausführen* weitergibt,
+unterscheidet sich je nach Version; für `npx prisma db push` ist Weg A daher verlässlicher.
+
+### Hinweise zu den Werten
+
 Enthält das Datenbankpasswort Sonderzeichen wie `@`, `:`, `/` oder `#`, müssen diese in der URL
 prozentkodiert werden (`@` → `%40`, `#` → `%23`). Am einfachsten ist ein Passwort aus
 Buchstaben und Ziffern.
+
+`AUTH_SECRET` muss dauerhaft gleich bleiben – ändert er sich, werden alle Anmeldungen ungültig.
 
 Optional für die Anmeldung mit Google bzw. Apple – dieselben Variablen wie in
 [`.env.example`](../.env.example): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
@@ -117,6 +150,7 @@ Die häufigsten Ursachen, in dieser Reihenfolge:
 | `@prisma/client did not initialize yet` | `prisma generate` fehlt | `npm install` erneut (läuft dort automatisch mit) oder `npx prisma generate` |
 | `Table 'fairteilen.User' doesn't exist` | Die Tabellen wurden nicht angelegt | `npx prisma db push` |
 | `Access denied for user` / `Unknown database` | `DATABASE_URL` stimmt nicht | Zugangsdaten prüfen, Sonderzeichen prozentkodieren |
+| `Environment variable not found: DATABASE_URL` | Die Variable ist weder in `.env` noch in Plesk hinterlegt | siehe Abschnitt 4 |
 | `Error validating datasource db: the URL must start with mysql://` | Es ist noch ein anderer Provider gesetzt | `npm run use:mysql`, dann `npx prisma db push` |
 | `The engine-mode of the Prisma Client` / Fehler beim Start | Node-Version zu alt | Node 20 oder 22 wählen und neu starten |
 

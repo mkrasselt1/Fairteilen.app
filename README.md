@@ -94,8 +94,9 @@ npx prisma db push      # danach jeweils einmal ausführen
 ```
 
 ### Plesk / Phusion Passenger
-Die Startdatei `app.js` liegt bei – die vollständige Anleitung steht in
-[docs/plesk.md](docs/plesk.md).
+Die Startdatei `app.js` liegt bei. Sie liest beim Start eine `.env` aus dem Anwendungsstamm,
+wobei echte Umgebungsvariablen Vorrang behalten – die Werte können also wahlweise in der Datei
+oder in der Plesk-Oberfläche stehen. Vollständige Anleitung: [docs/plesk.md](docs/plesk.md).
 
 ### Vercel, Railway, Fly.io & Co.
 Ein normales Next.js-Projekt: Repository verbinden, `DATABASE_URL` (Postgres), `AUTH_SECRET` und
