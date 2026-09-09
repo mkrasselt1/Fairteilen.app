@@ -186,41 +186,52 @@ Vollständig lautet die Meldung etwa:
 -: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by -)
 ```
 
-Das heißt: Ein aufgerufenes Programm wurde für eine neuere C-Bibliothek übersetzt, als auf dem
-Server installiert ist. Fast immer ist es ein **anderes Node als das in Plesk ausgewählte** –
-die zusätzlichen Bereitstellungsaktionen laufen in einer einfachen Shell, in der `node` und `npm`
-auf eine fremde Installation zeigen können (etwa aus nvm oder einem manuell entpackten Archiv).
-Mit der Anwendung selbst hat der Fehler nichts zu tun.
+**Die Ursache liegt nicht in Fairteilen.** Die höchste C-Bibliothek, die das Projekt und alle seine
+Abhängigkeiten verlangen, ist `GLIBC_2.28` (aus dem Jahr 2018) – nachprüfbar mit den unten
+genannten Werkzeugen. Wer `GLIBC_2.36` oder `2.38` fordert, ist ein anderes Programm in der Shell,
+in der Plesk die Bereitstellungsaktionen ausführt – meist ein Node aus einer Fremdinstallation
+(nvm, ein manuell entpacktes Archiv, ein Paket aus einem neueren Distributionszweig). Plesk kürzt
+den Programmnamen in der Anzeige leider auf `-`.
 
-Erst prüfen, per SSH:
+#### Ursache finden
+
+Das Projekt bringt zwei Werkzeuge dafür mit:
 
 ```bash
-ldd --version | head -1        # welche glibc der Server hat
-which -a node npm              # was in dieser Shell gefunden wird
-node -v                        # und welche Version das ist
-ls /opt/plesk/node/            # die von Plesk verwalteten Node-Versionen
+sh scripts/pruefe-umgebung.sh   # reine Shell, funktioniert auch ohne lauffähiges Node
+npm run doctor                  # ausführlicher, braucht ein startendes Node
 ```
 
-Ist die gefundene Node-Version neuer als das, was der Server tragen kann, gibt es zwei Wege:
+`scripts/pruefe-umgebung.sh` lässt sich direkt als *Zusätzliche Bereitstellungsaktion* eintragen –
+dann steht das Ergebnis im selben Fenster, in dem sonst der Fehler erscheint. Es zeigt die
+Systemversion, den Suchpfad der Shell und für jedes gefundene `node`, `npm` und `npx`, welche
+C-Bibliothek es braucht. Der Eintrag mit einer höheren Zahl als die Systemversion ganz oben ist
+die Ursache.
 
-**Weg 1 – empfohlen: gar keine Bereitstellungsaktionen.**
+#### Beheben
+
+**Weg 1 – empfohlen: keine Bereitstellungsaktionen verwenden.**
 Das Feld *Zusätzliche Bereitstellungsaktionen* leer lassen. Git bringt dann nur die Dateien auf den
 Server; gebaut wird über die Node.js-Seite mit **NPM install** und dem Skript **`setup`**
-(siehe Abschnitt 5). Diese Knöpfe benutzen garantiert die in Plesk ausgewählte Node-Version.
+(Abschnitt 5). Diese Knöpfe benutzen immer die in Plesk ausgewählte Node-Version und umgehen die
+fremde Installation vollständig.
 
-**Weg 2 – absolute Pfade in den Aktionen.**
-Wenn die Aktionen automatisch laufen sollen, Node nicht über den Suchpfad ansprechen, sondern
-direkt – die Versionsnummer an die eigene Installation anpassen:
+**Weg 2 – die richtige Node-Version erzwingen.**
+Erst mit `sh scripts/pruefe-umgebung.sh` herausfinden, welche Node-Versionen tauglich sind, dann in
+den Aktionen genau diese mit vollem Pfad ansprechen – der Pfad unten ist ein Beispiel und muss zur
+Ausgabe des Skripts passen:
 
 ```bash
 export PATH=/opt/plesk/node/22/bin:$PATH
+hash -r                       # gemerkte Programmpfade der Shell verwerfen
+command -v node && node -v    # kontrollieren, was jetzt wirklich benutzt wird
 cd /var/www/vhosts/fairteilen.app/httpdocs
-npm install
-npm run setup
+npm install && npm run setup
 ```
 
-Bleibt der Fehler, verrät ein manueller Durchlauf denselben Befehle per SSH den vollständigen
-Namen des betroffenen Programms – in der Plesk-Oberfläche ist er auf `-` gekürzt.
+`hash -r` und die Kontrollzeile sind wichtig: Ohne sie kann die Shell weiterhin den zuvor
+gefundenen Pfad verwenden, und der Fehler bleibt unverändert bestehen. Zeigt `node -v` nichts an,
+existiert das angegebene Verzeichnis nicht – dann sagt das Prüfskript, welche es stattdessen gibt.
 
 ### Seite lädt, aber ohne Gestaltung
 Der Dokumentenstamm zeigt auf ein falsches Verzeichnis – er muss `/httpdocs/public` sein.
