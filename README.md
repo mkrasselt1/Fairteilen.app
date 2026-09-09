@@ -1,6 +1,6 @@
 # 🤝 Fairteilen.app
 
-**Freie, quelloffene App zum Teilen gemeinsamer Ausgaben.** Funktional an Splitwise orientiert –
+**Freie, quelloffene App zum Teilen gemeinsamer Ausgaben.** Für WG, Reise, Paar oder Projekt –
 ohne Werbung, ohne Abo, ohne Limits und selbst hostbar. Wer nur schnell etwas ausrechnen will,
 braucht nicht einmal ein Konto.
 
@@ -208,4 +208,4 @@ tests/              Tests (node:test) und Browsertest
 
 [MIT](LICENSE) – Nutzung, Veränderung und Weitergabe sind ausdrücklich erwünscht.
 
-Fairteilen ist ein eigenständiges Projekt und steht in keiner Verbindung zu Splitwise Inc.
+Fairteilen ist ein eigenständiges Projekt und gehört zu keinem anderen Anbieter.

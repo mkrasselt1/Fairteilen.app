@@ -3,8 +3,8 @@
  *
  * Jede Ausgabe liefert pro Person `paidCents` (gezahlt) und `oweCents` (Anteil).
  * Der Saldo einer Person ist paid - owe: positiv = bekommt Geld, negativ = schuldet.
- * Salden werden pro Währung getrennt geführt (wie bei Splitwise; es wird nicht
- * automatisch umgerechnet).
+ * Salden werden pro Währung getrennt geführt; es wird nicht automatisch
+ * umgerechnet, damit schwankende Wechselkurse alte Abrechnungen nicht verändern.
  */
 
 export type ShareRow = {

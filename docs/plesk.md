@@ -27,7 +27,7 @@ ALTER DATABASE fairteilen CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ## 2. Dateien auf den Server bringen
 
-Über Plesk → *Git* (Branch `claude/splitwise-clone-a3w70z` bzw. später `main`) oder per SFTP
+Über Plesk → *Git* (Branch `claude/fairteilen-app` bzw. später `main`) oder per SFTP
 nach `/httpdocs`. Nach jedem Update gilt: `npm install` → `npm run build` → *App neu starten*.
 
 ---
