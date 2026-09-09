@@ -10,7 +10,8 @@ braucht nicht einmal ein Konto.
 
 ### Ohne Anmeldung (`/rechner`)
 - Personen und Ausgaben eintragen, Ergebnis sofort sehen
-- Alle fünf Aufteilungsarten, Salden und minimaler Ausgleichsplan
+- Alle fünf Aufteilungsarten mit Schiebereglern und grafischer Rückmeldung
+- Salden und minimaler Ausgleichsplan
 - Ergebnis teilen (Web Share / Zwischenablage) und CSV-Download
 - **Es wird nichts an den Server gesendet** – der Stand liegt allein im `localStorage` des Browsers
 
@@ -21,6 +22,7 @@ braucht nicht einmal ein Konto.
 | **Ausgaben** | Beschreibung, Betrag, Datum, 26 Kategorien, Notizen, Kommentare |
 | **Zahlende** | eine oder mehrere Personen pro Ausgabe |
 | **Aufteilung** | gleich · exakte Beträge · Prozent · Anteile · Zu-/Abschläge |
+| **Rückmeldung** | Balken über alle Beteiligten, Schieberegler je Person, Meldung „es fehlen noch …“ bzw. „… zu viel“; beim Wechsel der Aufteilungsart wird die bisherige Verteilung umgerechnet |
 | **Salden** | pro Person, pro Gruppe und insgesamt – getrennt nach Währung |
 | **Ausgleich** | optionale Schuldenvereinfachung (minimale Anzahl Überweisungen) |
 | **Zahlungen** | „Begleichen“ erfasst echte Überweisungen und verrechnet sie |

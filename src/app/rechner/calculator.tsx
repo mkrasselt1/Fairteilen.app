@@ -5,6 +5,8 @@ import { CATEGORIES, CATEGORY_GROUPS, categoryOf } from "@/lib/categories";
 import { CURRENCIES, formatMoney, parseAmountToCents } from "@/lib/money";
 import { toDateInputValue } from "@/lib/format";
 import { SPLIT_TYPES, type SplitType } from "@/lib/split";
+import { analyzeSplit, convertSplitValues, formatSplitValue, percentTotalBps } from "@/lib/split-ui";
+import { SplitAllocationBar } from "@/components/split-feedback";
 import {
   computeGuestResult,
   emptyGuestState,
@@ -61,6 +63,7 @@ export function GuestCalculator() {
   const [state, setState] = useState<GuestState | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [converted, setConverted] = useState(false);
 
   useEffect(() => {
     const loaded = loadGuestState();
@@ -216,6 +219,51 @@ export function GuestCalculator() {
     }
   }
 
+  const draftAmountCents = parseAmountToCents(draft.amount, state.currency) ?? 0;
+  const selectedIds = state.people.filter((p) => draft.selected.has(p.id)).map((p) => p.id);
+  const valuedParticipants = selectedIds.map((id) => ({
+    userId: id,
+    value: parseValue(draft.splitType, draft.values[id] ?? "", state.currency),
+  }));
+  const analysis = analyzeSplit(draftAmountCents, draft.splitType, valuedParticipants);
+  const percentBps = percentTotalBps(valuedParticipants);
+  const totalShares = valuedParticipants.reduce((sum, p) => sum + (p.value || 0), 0);
+
+  /** Beim Wechsel der Aufteilungsart die bisherige Verteilung übernehmen. */
+  function changeSplitType(next: SplitType) {
+    if (next === draft!.splitType) return;
+    const mapped = convertSplitValues(next, draftAmountCents, analysis.perUser, selectedIds);
+    const values: Record<string, string> = {};
+    for (const [id, value] of mapped) values[id] = formatSplitValue(next, value);
+    setDraft({ ...draft!, splitType: next, values });
+    setConverted(next !== "equal" && mapped.size > 0);
+  }
+
+  function setValue(id: string, raw: string) {
+    setDraft({ ...draft!, values: { ...draft!.values, [id]: raw } });
+    setConverted(false);
+  }
+
+  /** Den noch offenen Betrag dieser Person zuschlagen. */
+  function assignRemainder(id: string) {
+    const current = parseValue(draft!.splitType, draft!.values[id] ?? "", state!.currency);
+    if (draft!.splitType === "percent") {
+      setValue(id, formatSplitValue("percent", Math.max(0, current + (10000 - percentBps))));
+    } else {
+      setValue(id, formatSplitValue(draft!.splitType, current + analysis.remainingCents));
+    }
+  }
+
+  /** Alle Beteiligten gleich stellen – als Ausgangspunkt für Feinjustierung. */
+  function distributeEvenly() {
+    const equalShares = analyzeSplit(draftAmountCents, "equal", selectedIds.map((id) => ({ userId: id, value: 0 })));
+    const mapped = convertSplitValues(draft!.splitType, draftAmountCents, equalShares.perUser, selectedIds);
+    const values: Record<string, string> = {};
+    for (const [id, value] of mapped) values[id] = formatSplitValue(draft!.splitType, value);
+    setDraft({ ...draft!, values });
+    setConverted(false);
+  }
+
   return (
     <div className="space-y-6">
       <section className="card space-y-4 p-5">
@@ -368,13 +416,24 @@ export function GuestCalculator() {
         </div>
 
         <div>
-          <span className="label">Aufteilung</span>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="label !mb-0">Aufteilung</span>
+            {draft.splitType !== "equal" && selectedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={distributeEvenly}
+                className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+              >
+                Gleichmäßig verteilen
+              </button>
+            )}
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
             {SPLIT_TYPES.map((type) => (
               <button
                 key={type}
                 type="button"
-                onClick={() => setDraft({ ...draft, splitType: type, values: {} })}
+                onClick={() => changeSplitType(type)}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                   draft.splitType === type
                     ? "bg-brand-500 text-white"
@@ -385,35 +444,123 @@ export function GuestCalculator() {
               </button>
             ))}
           </div>
+          {converted && (
+            <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:bg-brand-900/40 dark:text-brand-200">
+              Die bisherige Verteilung wurde übernommen und umgerechnet.
+            </p>
+          )}
         </div>
+
+        <SplitAllocationBar
+          analysis={analysis}
+          order={state.people.filter((person) => draft.selected.has(person.id))}
+          amountCents={draftAmountCents}
+          currency={state.currency}
+          splitType={draft.splitType}
+          percentBps={percentBps}
+          totalShares={totalShares}
+        />
 
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">
           {state.people.map((person) => {
             const checked = draft.selected.has(person.id);
+            const cents = analysis.perUser.get(person.id);
+            const numeric = parseValue(draft.splitType, draft.values[person.id] ?? "", state.currency);
+            const showSlider =
+              checked && (draft.splitType === "percent" || draft.splitType === "shares" || draft.splitType === "exact");
+            const canAssignRest =
+              checked &&
+              analysis.state !== "ok" &&
+              analysis.state !== "empty" &&
+              (draft.splitType === "exact" || draft.splitType === "percent");
+
             return (
-              <li key={person.id} className="flex items-center gap-3 py-2">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => {
-                    const selected = new Set(draft.selected);
-                    if (checked) selected.delete(person.id);
-                    else selected.add(person.id);
-                    setDraft({ ...draft, selected });
-                  }}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
-                  aria-label={`${person.name} beteiligen`}
-                />
-                <span className="flex-1 truncate text-sm">{person.name}</span>
-                {checked && draft.splitType !== "equal" && (
+              <li key={person.id} className="py-2">
+                <div className="flex items-center gap-3">
                   <input
-                    inputMode="decimal"
-                    value={draft.values[person.id] ?? ""}
-                    onChange={(e) => setDraft({ ...draft, values: { ...draft.values, [person.id]: e.target.value } })}
-                    className="input w-28 text-right"
-                    placeholder={draft.splitType === "shares" ? "1" : "0"}
-                    aria-label={`Wert für ${person.name}`}
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => {
+                      const selected = new Set(draft.selected);
+                      if (checked) selected.delete(person.id);
+                      else selected.add(person.id);
+                      setDraft({ ...draft, selected });
+                    }}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
+                    aria-label={`${person.name} beteiligen`}
                   />
+                  <span className="min-w-0 flex-1 truncate text-sm">{person.name}</span>
+                  {checked && cents !== undefined && (
+                    <span className="shrink-0 text-sm font-semibold tabular-nums">
+                      {formatMoney(cents, state.currency)}
+                    </span>
+                  )}
+                  {checked && draft.splitType !== "equal" && (
+                    <span className="flex shrink-0 items-center gap-1">
+                      {draft.splitType === "shares" && (
+                        <span className="text-sm text-slate-500" aria-hidden>
+                          ×
+                        </span>
+                      )}
+                      <input
+                        inputMode="decimal"
+                        value={draft.values[person.id] ?? ""}
+                        onChange={(e) => setValue(person.id, e.target.value)}
+                        className="input w-20 text-right"
+                        placeholder={draft.splitType === "shares" ? "1" : "0"}
+                        aria-label={`Wert für ${person.name}`}
+                      />
+                      <span className="w-3 text-sm text-slate-500">
+                        {draft.splitType === "percent" ? "%" : ""}
+                      </span>
+                    </span>
+                  )}
+                </div>
+
+                {showSlider && (
+                  <div className="mt-1.5 flex items-center gap-3 pl-7">
+                    <input
+                      type="range"
+                      min={0}
+                      max={
+                        draft.splitType === "percent"
+                          ? 100
+                          : draft.splitType === "shares"
+                            ? 10
+                            : Math.max(draftAmountCents, 1)
+                      }
+                      step={1}
+                      value={
+                        draft.splitType === "percent"
+                          ? Math.min(100, Math.round(numeric / 100))
+                          : draft.splitType === "shares"
+                            ? Math.min(10, numeric)
+                            : Math.min(Math.max(draftAmountCents, 1), Math.max(0, numeric))
+                      }
+                      onChange={(e) => {
+                        const raw = Number(e.target.value);
+                        setValue(
+                          person.id,
+                          draft.splitType === "percent"
+                            ? formatSplitValue("percent", raw * 100)
+                            : draft.splitType === "shares"
+                              ? String(raw)
+                              : formatSplitValue("exact", raw),
+                        );
+                      }}
+                      className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-500 dark:bg-slate-700"
+                      aria-label={`${person.name}: Anteil einstellen`}
+                    />
+                    {canAssignRest && (
+                      <button
+                        type="button"
+                        onClick={() => assignRemainder(person.id)}
+                        className="shrink-0 text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                      >
+                        Rest zuweisen
+                      </button>
+                    )}
+                  </div>
                 )}
               </li>
             );

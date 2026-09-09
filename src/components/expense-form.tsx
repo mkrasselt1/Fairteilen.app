@@ -7,7 +7,9 @@ import { FormAlert, SubmitButton } from "@/components/forms";
 import { Avatar } from "@/components/ui";
 import { CATEGORIES, CATEGORY_GROUPS } from "@/lib/categories";
 import { CURRENCIES, formatMoney, parseAmountToCents } from "@/lib/money";
-import { computeShares, SplitError, type SplitType } from "@/lib/split";
+import { type SplitType } from "@/lib/split";
+import { analyzeSplit, convertSplitValues, formatSplitValue, percentTotalBps } from "@/lib/split-ui";
+import { SplitAllocationBar } from "@/components/split-feedback";
 import { toDateInputValue } from "@/lib/format";
 
 export type PersonOption = { id: string; name: string; email: string; avatarColor: string };
@@ -113,13 +115,17 @@ export function ExpenseForm({
   const [selected, setSelected] = useState<Set<string>>(initialSelected);
   const [values, setValues] = useState<Record<string, string>>(() => {
     const start: Record<string, string> = {};
-    if (initial) {
-      for (const share of initial.shares) {
-        if (initial.splitType === "exact") start[share.userId] = (share.oweCents / 100).toFixed(2);
-      }
+    if (!initial || initial.splitType === "equal") return start;
+    // Aus den gespeicherten Anteilen die Werte der jeweiligen Aufteilungsart zurückrechnen,
+    // damit beim Bearbeiten nichts verloren geht.
+    const perUser = new Map(initial.shares.map((share) => [share.userId, share.oweCents]));
+    const order = initial.shares.filter((share) => share.oweCents !== 0).map((share) => share.userId);
+    for (const [userId, value] of convertSplitValues(initial.splitType, initial.amountCents, perUser, order)) {
+      start[userId] = formatSplitValue(initial.splitType, value);
     }
     return start;
   });
+  const [convertedNote, setConvertedNote] = useState(false);
   const [paidValues, setPaidValues] = useState<Record<string, string>>(() => {
     const start: Record<string, string> = {};
     if (initial) {
@@ -133,19 +139,58 @@ export function ExpenseForm({
   const amountCents = parseAmountToCents(amountText, currency) ?? 0;
   const participants = people.filter((p) => selected.has(p.id));
 
-  const preview = useMemo(() => {
-    if (amountCents <= 0 || participants.length === 0) return null;
-    try {
-      const shares = computeShares(
-        amountCents,
-        splitType,
-        participants.map((p) => ({ userId: p.id, value: parseValueFor(splitType, values[p.id] ?? "", currency) })),
-      );
-      return { shares, error: null as string | null };
-    } catch (error) {
-      return { shares: [], error: error instanceof SplitError ? error.message : "Aufteilung nicht möglich." };
+  const valuedParticipants = useMemo(
+    () =>
+      participants.map((p) => ({
+        userId: p.id,
+        value: parseValueFor(splitType, values[p.id] ?? "", currency),
+      })),
+    [participants, splitType, values, currency],
+  );
+
+  const analysis = useMemo(
+    () => analyzeSplit(amountCents, splitType, valuedParticipants),
+    [amountCents, splitType, valuedParticipants],
+  );
+
+  const percentBps = percentTotalBps(valuedParticipants);
+  const totalShares = valuedParticipants.reduce((sum, p) => sum + (p.value || 0), 0);
+
+  /** Beim Wechsel der Aufteilungsart die bisherige Verteilung übernehmen. */
+  function changeSplitType(next: SplitType) {
+    if (next === splitType) return;
+    const converted = convertSplitValues(next, amountCents, analysis.perUser, participants.map((p) => p.id));
+    const nextValues: Record<string, string> = {};
+    for (const [userId, value] of converted) nextValues[userId] = formatSplitValue(next, value);
+    setValues(nextValues);
+    setSplitType(next);
+    setConvertedNote(next !== "equal" && converted.size > 0);
+  }
+
+  function setValue(userId: string, raw: string) {
+    setValues((prev) => ({ ...prev, [userId]: raw }));
+    setConvertedNote(false);
+  }
+
+  /** Den noch offenen Betrag dieser Person zuschlagen. */
+  function assignRemainder(userId: string) {
+    const current = parseValueFor(splitType, values[userId] ?? "", currency);
+    if (splitType === "percent") {
+      setValue(userId, formatSplitValue("percent", Math.max(0, current + (10000 - percentBps))));
+    } else {
+      setValue(userId, formatSplitValue(splitType, current + analysis.remainingCents));
     }
-  }, [amountCents, participants, splitType, values, currency]);
+  }
+
+  /** Alle Beteiligten gleich stellen – als Ausgangspunkt für Feinjustierung. */
+  function distributeEvenly() {
+    const equalShares = analyzeSplit(amountCents, "equal", participants.map((p) => ({ userId: p.id, value: 0 })));
+    const converted = convertSplitValues(splitType, amountCents, equalShares.perUser, participants.map((p) => p.id));
+    const nextValues: Record<string, string> = {};
+    for (const [userId, value] of converted) nextValues[userId] = formatSplitValue(splitType, value);
+    setValues(nextValues);
+    setConvertedNote(false);
+  }
 
   const paidSum = payerMode === "multiple"
     ? people.reduce((acc, p) => acc + (parseAmountToCents(paidValues[p.id] ?? "", currency) ?? 0), 0)
@@ -317,16 +362,26 @@ export function ExpenseForm({
 
       <section className="card space-y-4 p-5">
         <div>
-          <h2 className="font-semibold">Aufteilen</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">Aufteilen</h2>
+            {splitType !== "equal" && participants.length > 0 && (
+              <button
+                type="button"
+                onClick={distributeEvenly}
+                className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+              >
+                Gleichmäßig verteilen
+              </button>
+            )}
+          </div>
+
           <div className="mt-3 flex flex-wrap gap-1.5">
             {SPLIT_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => {
-                  setSplitType(tab.id);
-                  setValues({});
-                }}
+                onClick={() => changeSplitType(tab.id)}
+                aria-pressed={splitType === tab.id}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                   splitType === tab.id
                     ? "bg-brand-500 text-white"
@@ -338,57 +393,121 @@ export function ExpenseForm({
             ))}
           </div>
           <p className="hint mt-2">{activeTab.hint}</p>
+          {convertedNote && (
+            <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:bg-brand-900/40 dark:text-brand-200">
+              Die bisherige Verteilung wurde übernommen und umgerechnet.
+            </p>
+          )}
         </div>
+
+        <SplitAllocationBar
+          analysis={analysis}
+          order={participants.map((p) => ({ id: p.id, name: p.name, avatarColor: p.avatarColor }))}
+          amountCents={amountCents}
+          currency={currency}
+          splitType={splitType}
+          percentBps={percentBps}
+          totalShares={totalShares}
+        />
 
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {people.map((person) => {
             const isSelected = selected.has(person.id);
-            const share = preview?.shares.find((s) => s.userId === person.id);
+            const cents = analysis.perUser.get(person.id);
+            const numeric = parseValueFor(splitType, values[person.id] ?? "", currency);
+            const showSlider = isSelected && (splitType === "percent" || splitType === "shares" || splitType === "exact");
+            const canAssignRest =
+              isSelected &&
+              analysis.state !== "ok" &&
+              analysis.state !== "empty" &&
+              (splitType === "exact" || splitType === "percent");
+
             return (
-              <div key={person.id} className="flex items-center gap-3 py-2.5">
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => toggle(person.id)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
-                  aria-label={`${person.name} beteiligen`}
-                />
-                <Avatar user={person} size={32} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
+              <div key={person.id} className="py-2.5">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggle(person.id)}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
+                    aria-label={`${person.name} beteiligen`}
+                  />
+                  <Avatar user={person} size={32} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
                     {person.id === currentUser.id ? "Du" : person.name}
                   </span>
-                  {isSelected && share && (
-                    <span className="hint block">{formatMoney(share.oweCents, currency)}</span>
-                  )}
-                </span>
-                {isSelected && splitType !== "equal" && (
-                  <span className="flex items-center gap-1">
-                    <input
-                      name={`value:${person.id}`}
-                      inputMode="decimal"
-                      value={values[person.id] ?? ""}
-                      onChange={(e) => setValues({ ...values, [person.id]: e.target.value })}
-                      className="input w-28 text-right"
-                      placeholder={splitType === "shares" ? "1" : "0"}
-                    />
-                    <span className="w-4 text-sm text-slate-500">
-                      {splitType === "percent" ? "%" : splitType === "shares" ? "×" : ""}
+                  {isSelected && cents !== undefined && (
+                    <span className="shrink-0 text-sm font-semibold tabular-nums">
+                      {formatMoney(cents, currency)}
                     </span>
-                  </span>
+                  )}
+                  {isSelected && splitType !== "equal" && (
+                    <span className="flex shrink-0 items-center gap-1">
+                      {splitType === "shares" && (
+                        <span className="text-sm text-slate-500" aria-hidden>
+                          ×
+                        </span>
+                      )}
+                      <input
+                        name={`value:${person.id}`}
+                        inputMode="decimal"
+                        value={values[person.id] ?? ""}
+                        onChange={(e) => setValue(person.id, e.target.value)}
+                        className="input w-20 text-right"
+                        placeholder={splitType === "shares" ? "1" : "0"}
+                        aria-label={`Wert für ${person.name}`}
+                      />
+                      <span className="w-3 text-sm text-slate-500">
+                        {splitType === "percent" ? "%" : ""}
+                      </span>
+                    </span>
+                  )}
+                </div>
+
+                {showSlider && (
+                  <div className="mt-1.5 flex items-center gap-3 pl-7">
+                    <input
+                      type="range"
+                      min={0}
+                      max={splitType === "percent" ? 100 : splitType === "shares" ? 10 : Math.max(amountCents, 1)}
+                      step={1}
+                      value={
+                        splitType === "percent"
+                          ? Math.min(100, Math.round(numeric / 100))
+                          : splitType === "shares"
+                            ? Math.min(10, numeric)
+                            : Math.min(Math.max(amountCents, 1), Math.max(0, numeric))
+                      }
+                      onChange={(e) => {
+                        const raw = Number(e.target.value);
+                        setValue(
+                          person.id,
+                          splitType === "percent"
+                            ? formatSplitValue("percent", raw * 100)
+                            : splitType === "shares"
+                              ? String(raw)
+                              : formatSplitValue("exact", raw),
+                        );
+                      }}
+                      className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-500 dark:bg-slate-700"
+                      aria-label={`${person.name}: Anteil einstellen`}
+                    />
+                    {canAssignRest && (
+                      <button
+                        type="button"
+                        onClick={() => assignRemainder(person.id)}
+                        className="shrink-0 text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                      >
+                        Rest zuweisen
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
 
-        {preview?.error && <p className="negative text-sm">{preview.error}</p>}
-        {preview && !preview.error && (
-          <p className="hint">
-            {participants.length} {participants.length === 1 ? "Person" : "Personen"} beteiligt · Summe{" "}
-            {formatMoney(preview.shares.reduce((a, s) => a + s.oweCents, 0), currency)}
-          </p>
-        )}
         {groupId === "" && friends.length === 0 && (
           <p className="hint">
             Du hast noch keine Kontakte.{" "}

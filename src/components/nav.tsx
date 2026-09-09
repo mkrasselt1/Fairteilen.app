@@ -130,6 +130,13 @@ export function BottomNav() {
 }
 
 export function FloatingAddButton() {
+  const pathname = usePathname();
+  // Im Ausgabenformular selbst wäre der Knopf überflüssig und würde auf schmalen
+  // Bildschirmen die Eingabefelder überdecken.
+  if (pathname.startsWith("/ausgaben/neu") || pathname.endsWith("/bearbeiten") || pathname.startsWith("/begleichen")) {
+    return null;
+  }
+
   return (
     <Link
       href="/ausgaben/neu"
