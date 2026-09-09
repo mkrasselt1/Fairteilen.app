@@ -103,7 +103,8 @@ npm run db:push      # danach jeweils einmal ausführen
 ```
 
 ### Plesk / Phusion Passenger
-Die Startdatei `app.js` liegt bei. Sie liest beim Start eine `.env` aus dem Anwendungsstamm,
+Die Startdatei `app.js` liegt bei, dazu `scripts/plesk-deploy.sh`, das sich als einzelne
+Bereitstellungsaktion eintragen lässt und Verzeichnis, Node-Auswahl und Build selbst übernimmt. Sie liest beim Start eine `.env` aus dem Anwendungsstamm,
 wobei echte Umgebungsvariablen Vorrang behalten – die Werte können also wahlweise in der Datei
 oder in der Plesk-Oberfläche stehen. Vollständige Anleitung: [docs/plesk.md](docs/plesk.md).
 

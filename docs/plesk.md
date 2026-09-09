@@ -106,7 +106,24 @@ Optional für die Anmeldung mit Google bzw. Apple – dieselben Variablen wie in
 
 ## 5. Einmalig aufbauen
 
-Dafür genügen zwei Klicks auf der Node.js-Seite – eine Kommandozeile wird nicht gebraucht:
+### Wenn Plesk über Git bereitstellt
+
+Unter *Git* → **Zusätzliche Bereitstellungsaktionen** genau **eine** Zeile eintragen:
+
+```sh
+sh ./scripts/plesk-deploy.sh
+```
+
+> **Wichtig:** Plesk führt die Zeilen dieses Feldes unabhängig voneinander aus. Ein `export PATH=…`
+> oder `cd …` in einer Zeile wirkt deshalb **nicht** auf die nächste – daran scheitern die üblichen
+> mehrzeiligen Anleitungen. `plesk-deploy.sh` erledigt alles in einem Aufruf: Es wechselt selbst ins
+> Projektverzeichnis, sucht ein Node, das zur C-Bibliothek des Servers passt und mindestens
+> Version 18 hat, und führt damit `npm install` und `npm run setup` aus. Node-Installationen, die
+> eine zu neue C-Bibliothek verlangen, überspringt es mit einem Hinweis, statt daran zu scheitern.
+
+Danach in Plesk noch **App neu starten**.
+
+### Ohne Git – zwei Klicks auf der Node.js-Seite
 
 1. **NPM install** (das Paket-Symbol neben *App neu starten*)
 2. **NPM-Skript ausführen** (das ▷-Symbol) → Skript **`setup`** auswählen
@@ -210,28 +227,32 @@ die Ursache.
 
 #### Beheben
 
-**Weg 1 – empfohlen: keine Bereitstellungsaktionen verwenden.**
+**Weg 0 – meistens schon die Lösung: alles in eine Zeile.**
+Plesk führt die Zeilen der Bereitstellungsaktionen unabhängig voneinander aus. Ein `export PATH=…`
+in Zeile 1 wirkt deshalb nicht auf Zeile 3 – die Fehlermeldung bleibt dann unverändert, obwohl der
+Pfad scheinbar gesetzt wurde. Stattdessen genau eine Zeile eintragen:
+
+```sh
+sh ./scripts/plesk-deploy.sh
+```
+
+Das Skript setzt PATH innerhalb desselben Aufrufs und wählt selbst ein Node, das zur
+C-Bibliothek des Servers passt.
+
+**Weg 1 – keine Bereitstellungsaktionen verwenden.**
 Das Feld *Zusätzliche Bereitstellungsaktionen* leer lassen. Git bringt dann nur die Dateien auf den
 Server; gebaut wird über die Node.js-Seite mit **NPM install** und dem Skript **`setup`**
 (Abschnitt 5). Diese Knöpfe benutzen immer die in Plesk ausgewählte Node-Version und umgehen die
 fremde Installation vollständig.
 
-**Weg 2 – die richtige Node-Version erzwingen.**
-Erst mit `sh scripts/pruefe-umgebung.sh` herausfinden, welche Node-Versionen tauglich sind, dann in
-den Aktionen genau diese mit vollem Pfad ansprechen – der Pfad unten ist ein Beispiel und muss zur
-Ausgabe des Skripts passen:
+**Weg 2 – von Hand, alles in einer Zeile.**
+Erst mit `sh scripts/pruefe-umgebung.sh` herausfinden, welche Node-Versionen tauglich sind, dann
+genau diese mit vollem Pfad ansprechen. Der Pfad unten ist ein Beispiel und muss zur Ausgabe des
+Prüfskripts passen – entscheidend ist, dass alles **ein** Befehl bleibt:
 
-```bash
-export PATH=/opt/plesk/node/22/bin:$PATH
-hash -r                       # gemerkte Programmpfade der Shell verwerfen
-command -v node && node -v    # kontrollieren, was jetzt wirklich benutzt wird
-cd /var/www/vhosts/fairteilen.app/httpdocs
-npm install && npm run setup
+```sh
+cd /var/www/vhosts/fairteilen.app/httpdocs && export PATH=/opt/plesk/node/22/bin:$PATH && node -v && npm install && npm run setup
 ```
-
-`hash -r` und die Kontrollzeile sind wichtig: Ohne sie kann die Shell weiterhin den zuvor
-gefundenen Pfad verwenden, und der Fehler bleibt unverändert bestehen. Zeigt `node -v` nichts an,
-existiert das angegebene Verzeichnis nicht – dann sagt das Prüfskript, welche es stattdessen gibt.
 
 ### Seite lädt, aber ohne Gestaltung
 Der Dokumentenstamm zeigt auf ein falsches Verzeichnis – er muss `/httpdocs/public` sein.
