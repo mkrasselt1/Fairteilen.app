@@ -66,6 +66,35 @@
   }
 }
 
+/* Modale Dialoge zentrieren und sanft einblenden.
+   Tailwinds Reset setzt margin auf 0 – damit verliert <dialog> seine
+   eingebaute Zentrierung, deshalb hier wieder auf auto. */
+dialog {
+  margin: auto;
+  max-height: calc(100dvh - 2rem);
+}
+dialog[open] {
+  animation: modal-in 0.15s ease-out;
+}
+dialog::backdrop {
+  backdrop-filter: blur(2px);
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog[open] {
+    animation: none;
+  }
+}
+
 /* Zahlenfelder ohne Spinner */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

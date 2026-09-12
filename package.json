@@ -21,6 +21,9 @@
     "use:mysql": "node scripts/use-database.mjs mysql",
     "use:postgres": "node scripts/use-database.mjs postgres",
     "use:sqlite": "node scripts/use-database.mjs sqlite",
+    "app:sync": "cap sync",
+    "app:ios": "cap open ios",
+    "app:android": "cap open android",
     "postinstall": "prisma generate"
   },
   "dependencies": {

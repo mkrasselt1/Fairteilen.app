@@ -39,6 +39,7 @@ braucht nicht einmal ein Konto.
 | **Export** | CSV je Gruppe oder für alles |
 | **Konto** | Profil, Währung, Passwort, Google-/Apple-Verknüpfung, Löschung |
 | **Oberfläche** | Deutsch, responsiv, helles und dunkles Design, als PWA installierbar |
+| **Als App** | Sofort als PWA installierbar; für die Stores liegen Capacitor-Konfiguration, Symbol und Startbildschirm bereit – siehe [docs/apps.md](docs/apps.md) |
 
 ### Anmeldung
 - E-Mail und Passwort (scrypt-Hash, signiertes Sitzungs-Cookie in der Datenbank)
@@ -201,6 +202,7 @@ src/
   actions/          Server Actions (Formularverarbeitung)
   components/       Wiederverwendete Oberfläche
   lib/              Rechenkern, Datenzugriff, Anmeldung, OAuth, Formatierung
+native/             Symbol, Startbildschirm und Offline-Seite für die App-Hüllen
 prisma/             Datenmodell und Beispieldaten
 tests/              Tests (node:test) und Browsertest
 ```

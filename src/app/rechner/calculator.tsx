@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CATEGORIES, CATEGORY_GROUPS, categoryOf } from "@/lib/categories";
 import { CURRENCIES, formatMoney, parseAmountToCents } from "@/lib/money";
 import { toDateInputValue } from "@/lib/format";
+import { ConfirmDialog, Modal } from "@/components/modal";
 import { SPLIT_TYPES, type SplitType } from "@/lib/split";
 import { analyzeSplit, convertSplitValues, formatSplitValue, percentTotalBps } from "@/lib/split-ui";
 import { SplitAllocationBar } from "@/components/split-feedback";
@@ -64,6 +65,8 @@ export function GuestCalculator() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [converted, setConverted] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [shareText, setShareText] = useState<string | null>(null);
 
   useEffect(() => {
     const loaded = loadGuestState();
@@ -215,7 +218,8 @@ export function GuestCalculator() {
       if (navigator.share) await navigator.share({ title: state!.title, text });
       else await navigator.clipboard.writeText(text);
     } catch {
-      window.prompt("Ergebnis kopieren:", text);
+      // Weder Teilen noch Zwischenablage möglich – Text zum Markieren anbieten.
+      setShareText(text);
     }
   }
 
@@ -678,19 +682,56 @@ export function GuestCalculator() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (!window.confirm("Alle Eingaben in diesem Browser löschen?")) return;
-              const fresh = emptyGuestState();
-              setState(fresh);
-              setDraft(emptyDraft(fresh));
-              setError(null);
-            }}
+            onClick={() => setResetOpen(true)}
             className="btn-ghost"
           >
             Zurücksetzen
           </button>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="Alles zurücksetzen?"
+        description="Personen und Ausgaben dieser Abrechnung werden aus dem Browser gelöscht. Rückgängig machen lässt sich das nicht."
+        confirm={
+          <button
+            type="button"
+            className="btn-danger"
+            onClick={() => {
+              const fresh = emptyGuestState();
+              setState(fresh);
+              setDraft(emptyDraft(fresh));
+              setError(null);
+              setResetOpen(false);
+            }}
+          >
+            Ja, zurücksetzen
+          </button>
+        }
+      />
+
+      <Modal
+        open={shareText !== null}
+        onClose={() => setShareText(null)}
+        title="Zum Kopieren markieren"
+        description="Dein Browser erlaubt weder Teilen noch automatisches Kopieren."
+      >
+        <textarea
+          readOnly
+          rows={6}
+          value={shareText ?? ""}
+          onFocus={(event) => event.currentTarget.select()}
+          autoFocus
+          className="input font-mono text-xs"
+        />
+        <div className="mt-4 flex justify-end">
+          <button type="button" className="btn-secondary" onClick={() => setShareText(null)}>
+            Schließen
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

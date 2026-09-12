@@ -24,6 +24,9 @@ const browser = await chromium.launch(
 );
 const page = await browser.newPage();
 page.on("pageerror", (e) => console.log("  [pageerror]", e.message));
+// Die App darf keine Browserdialoge mehr verwenden – Rückfragen laufen über Modale.
+let nativeDialog = null;
+page.on("dialog", async (d) => { nativeDialog = d.message(); await d.dismiss(); });
 
 // 1. Gastmodus
 await page.goto(`${BASE}/rechner`);
@@ -62,7 +65,7 @@ check("Gruppe angelegt", /\/gruppen\//.test(groupUrl));
 
 // 4. Zweites Konto erstellen und über Einladungslink beitreten
 await page.goto(`${groupUrl}/einstellungen`);
-const invite = await page.locator('input[readonly]').inputValue();
+const invite = await page.locator('section input[readonly]').first().inputValue();
 check("Einladungslink vorhanden", invite.includes("/beitreten/"), invite);
 
 const ctx2 = await browser.newContext();
@@ -127,11 +130,27 @@ await page.goto(`${BASE}/aktivitaet`);
 const activity = await page.innerText("body");
 check("Aktivitätsverlauf zeigt Einträge", activity.includes("Hotel") && activity.includes("Testreise"), activity.slice(0, 200));
 
+// 9b. Rückfragen laufen über ein Modal, nicht über den Browser
+await page.goto(`${BASE}${new URL(groupUrl).pathname}`);
+await page.getByRole("link", { name: /Hotel/ }).first().click();
+await page.waitForURL(/\/ausgaben\//, { timeout: 15000 });
+const detailText = (await page.innerText("body")).replace(/\s+/g, " ");
+check("Detailseite nennt den Saldo dieses Eintrags", /Bei diesem Eintrag (bekommst|schuldest) du/.test(detailText), detailText.slice(0, 200));
+
+await page.getByRole("button", { name: "Löschen", exact: true }).first().click();
+await page.waitForTimeout(400);
+check("Rückfrage erscheint als Modal", await page.locator("dialog[open]").count() === 1);
+await page.keyboard.press("Escape");
+await page.waitForTimeout(300);
+check("Escape schließt das Modal", await page.locator("dialog[open]").count() === 0);
+
 // 10. Dunkles Design
 await page.goto(`${BASE}/uebersicht`);
 await page.getByLabel("Dunkles Design").click();
 await page.waitForTimeout(200);
 check("Dunkles Design umschaltbar", await page.evaluate(() => document.documentElement.classList.contains("dark")));
+
+check("keine Browserdialoge verwendet", nativeDialog === null, String(nativeDialog));
 
 await browser.close();
 console.log(`\n${ok.length} bestanden, ${fail.length} fehlgeschlagen`);

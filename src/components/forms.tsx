@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { ActionState } from "@/lib/action-state";
+import { ConfirmDialog, Modal } from "@/components/modal";
 
 export function SubmitButton({
   children,
@@ -37,37 +38,57 @@ export function FormAlert({ state }: { state: ActionState }) {
   );
 }
 
-/** Kleines Formular mit Bestätigungsabfrage – z. B. Löschen. */
+/** Kleines Formular mit Rückfrage im Modal – z. B. Löschen. */
 export function ConfirmForm({
   action,
   confirm,
+  title = "Bist du sicher?",
   hidden,
   className = "btn-danger",
   children,
   pendingLabel = "Einen Moment …",
+  confirmLabel,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   confirm: string;
+  title?: string;
   hidden?: Record<string, string>;
   className?: string;
   children: React.ReactNode;
   pendingLabel?: string;
+  confirmLabel?: string;
 }) {
   const [state, formAction] = useActionState(action, null);
+  const [open, setOpen] = useState(false);
+
+  // Antwortet die Aktion (statt weiterzuleiten), Modal schließen – die
+  // Rückmeldung steht darunter im Formular.
+  useEffect(() => {
+    if (state) setOpen(false);
+  }, [state]);
+
   return (
-    <form
-      action={formAction}
-      onSubmit={(event) => {
-        if (!window.confirm(confirm)) event.preventDefault();
-      }}
-      className="space-y-2"
-    >
+    <form action={formAction} className="space-y-2">
       {Object.entries(hidden ?? {}).map(([key, value]) => (
         <input key={key} type="hidden" name={key} value={value} />
       ))}
-      <SubmitButton className={className} pendingLabel={pendingLabel}>
+
+      <button type="button" className={className} onClick={() => setOpen(true)}>
         {children}
-      </SubmitButton>
+      </button>
+
+      <ConfirmDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title={title}
+        description={confirm}
+        confirm={
+          <SubmitButton className={className} pendingLabel={pendingLabel}>
+            {confirmLabel ?? children}
+          </SubmitButton>
+        }
+      />
+
       <FormAlert state={state} />
     </form>
   );
@@ -75,21 +96,46 @@ export function ConfirmForm({
 
 export function CopyButton({ value, label = "Link kopieren" }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
+  const [fallbackOpen, setFallbackOpen] = useState(false);
+
   return (
-    <button
-      type="button"
-      className="btn-secondary"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(value);
-        } catch {
-          window.prompt("Link kopieren:", value);
-        }
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-    >
-      {copied ? "Kopiert ✓" : label}
-    </button>
+    <>
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          } catch {
+            // Ohne Zwischenablage-Berechtigung den Text zum Markieren anbieten.
+            setFallbackOpen(true);
+          }
+        }}
+      >
+        {copied ? "Kopiert ✓" : label}
+      </button>
+
+      <Modal
+        open={fallbackOpen}
+        onClose={() => setFallbackOpen(false)}
+        title="Zum Kopieren markieren"
+        description="Dein Browser erlaubt das automatische Kopieren nicht."
+      >
+        <input
+          readOnly
+          value={value}
+          onFocus={(event) => event.currentTarget.select()}
+          autoFocus
+          className="input font-mono text-xs"
+        />
+        <div className="mt-4 flex justify-end">
+          <button type="button" className="btn-secondary" onClick={() => setFallbackOpen(false)}>
+            Schließen
+          </button>
+        </div>
+      </Modal>
+    </>
   );
 }

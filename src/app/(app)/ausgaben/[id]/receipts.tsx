@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { addAttachmentAction, deleteAttachmentAction } from "@/actions/expenses";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { ReceiptPicker } from "@/components/receipt-picker";
+import { ConfirmDialog } from "@/components/modal";
 
 export function AddReceiptForm({ expenseId }: { expenseId: string }) {
   const [state, formAction] = useActionState(addAttachmentAction, null);
@@ -27,20 +28,34 @@ export function AddReceiptForm({ expenseId }: { expenseId: string }) {
 
 export function DeleteReceiptButton({ attachmentId, name }: { attachmentId: string; name: string }) {
   const [state, formAction] = useActionState(deleteAttachmentAction, null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (state) setOpen(false);
+  }, [state]);
+
   return (
-    <form
-      action={formAction}
-      onSubmit={(event) => {
-        if (!window.confirm(`„${name}“ wirklich löschen?`)) event.preventDefault();
-      }}
-    >
+    <form action={formAction}>
       <input type="hidden" name="attachmentId" value={attachmentId} />
-      <SubmitButton
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
         className="rounded-full bg-slate-900/70 px-2 py-0.5 text-xs text-white backdrop-blur hover:bg-slate-900"
-        pendingLabel="…"
       >
         Löschen
-      </SubmitButton>
+      </button>
+
+      <ConfirmDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Beleg löschen?"
+        description={`„${name}“ wird dauerhaft entfernt.`}
+        confirm={
+          <SubmitButton className="btn-danger" pendingLabel="…">
+            Beleg löschen
+          </SubmitButton>
+        }
+      />
+
       {state?.error && <p className="negative text-xs">{state.error}</p>}
     </form>
   );

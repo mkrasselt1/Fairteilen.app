@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   changePasswordAction,
   deleteAccountAction,
@@ -8,6 +8,7 @@ import {
   updateProfileAction,
 } from "@/actions/auth";
 import { FormAlert, SubmitButton } from "@/components/forms";
+import { ConfirmDialog } from "@/components/modal";
 import { CURRENCIES } from "@/lib/money";
 
 export function ProfileForm({ user }: { user: { name: string; email: string; currency: string } }) {
@@ -100,14 +101,13 @@ export function ChangePasswordForm({ hasPassword = true }: { hasPassword?: boole
 
 export function DeleteAccountForm({ hasPassword = true }: { hasPassword?: boolean }) {
   const [state, formAction] = useActionState(deleteAccountAction, null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (state) setOpen(false);
+  }, [state]);
+
   return (
-    <form
-      action={formAction}
-      onSubmit={(event) => {
-        if (!window.confirm("Konto wirklich unwiderruflich löschen?")) event.preventDefault();
-      }}
-      className="space-y-3"
-    >
+    <form action={formAction} className="space-y-3">
       {hasPassword && (
         <input
           name="password"
@@ -119,27 +119,51 @@ export function DeleteAccountForm({ hasPassword = true }: { hasPassword?: boolea
         />
       )}
       <FormAlert state={state} />
-      <SubmitButton className="btn-danger" pendingLabel="Wird gelöscht …">
+      <button type="button" className="btn-danger" onClick={() => setOpen(true)}>
         Konto endgültig löschen
-      </SubmitButton>
+      </button>
+
+      <ConfirmDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Konto endgültig löschen?"
+        description="Alle deine Daten werden unwiderruflich entfernt: Profil, Gruppenmitgliedschaften, Ausgaben und Belege. Das lässt sich nicht rückgängig machen."
+        confirm={
+          <SubmitButton className="btn-danger" pendingLabel="Wird gelöscht …">
+            Ja, Konto löschen
+          </SubmitButton>
+        }
+      />
     </form>
   );
 }
 
 export function UnlinkForm({ provider, label }: { provider: string; label: string }) {
   const [state, formAction] = useActionState(unlinkOAuthAction, null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (state) setOpen(false);
+  }, [state]);
+
   return (
-    <form
-      action={formAction}
-      onSubmit={(event) => {
-        if (!window.confirm(`Verknüpfung mit ${label} entfernen?`)) event.preventDefault();
-      }}
-      className="flex flex-col items-end gap-1"
-    >
+    <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="provider" value={provider} />
-      <SubmitButton className="btn-ghost !px-2 !py-1 text-xs" pendingLabel="…">
+      <button type="button" className="btn-ghost !px-2 !py-1 text-xs" onClick={() => setOpen(true)}>
         Trennen
-      </SubmitButton>
+      </button>
+
+      <ConfirmDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title={`Verknüpfung mit ${label} entfernen?`}
+        description={`Du kannst dich danach nicht mehr über ${label} anmelden. Ein gesetztes Passwort oder ein anderer verknüpfter Anbieter bleibt davon unberührt.`}
+        confirm={
+          <SubmitButton className="btn-danger" pendingLabel="…">
+            Verknüpfung entfernen
+          </SubmitButton>
+        }
+      />
+
       {state?.error && <span className="negative text-xs">{state.error}</span>}
     </form>
   );

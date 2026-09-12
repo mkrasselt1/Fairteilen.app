@@ -12,3 +12,7 @@ prisma/dev.db*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Von Capacitor erzeugte Projekte – werden aus capacitor.config.ts neu gebaut
+/ios
+/android

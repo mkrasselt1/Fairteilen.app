@@ -18,5 +18,10 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // Wird nur vom Capacitor-Befehl gelesen und braucht dessen Pakete, die
+    // bewusst nicht zu den Abhängigkeiten des Servers gehören (docs/apps.md).
+    "capacitor.config.ts"
+  ]
 }

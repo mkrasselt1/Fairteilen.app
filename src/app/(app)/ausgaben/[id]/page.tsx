@@ -26,6 +26,10 @@ export default async function ExpensePage({ params }: { params: Promise<{ id: st
   const payers = expense.shares.filter((s) => s.paidCents > 0);
   const debtors = expense.shares.filter((s) => s.oweCents !== 0);
 
+  // Was dieser einzelne Eintrag für dich bedeutet.
+  const mine = expense.shares.find((s) => s.userId === user.id);
+  const net = (mine?.paidCents ?? 0) - (mine?.oweCents ?? 0);
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -61,6 +65,31 @@ export default async function ExpensePage({ params }: { params: Promise<{ id: st
               {formatDateTime(expense.createdAt)}
             </p>
           </div>
+        </div>
+
+        <div
+          className={`mt-4 rounded-xl px-4 py-3 ${
+            net > 0
+              ? "bg-emerald-50 dark:bg-emerald-950/40"
+              : net < 0
+                ? "bg-rose-50 dark:bg-rose-950/40"
+                : "bg-slate-50 dark:bg-slate-800/60"
+          }`}
+        >
+          {net === 0 ? (
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              {mine ? "Bei diesem Eintrag bist du ausgeglichen." : "An diesem Eintrag bist du nicht beteiligt."}
+            </p>
+          ) : (
+            <p className="text-sm">
+              <span className="text-slate-600 dark:text-slate-300">
+                {net > 0 ? "Bei diesem Eintrag bekommst du " : "Bei diesem Eintrag schuldest du "}
+              </span>
+              <span className={`text-lg font-bold ${net > 0 ? "positive" : "negative"}`}>
+                {formatMoney(Math.abs(net), expense.currency)}
+              </span>
+            </p>
+          )}
         </div>
 
         {expense.notes && (
