@@ -3,7 +3,12 @@ import { prisma } from "./db";
 
 /** Legt beidseitige Verbindungen zwischen allen übergebenen Personen an (idempotent). */
 export async function ensureFriendships(userIds: string[]): Promise<void> {
-  const unique = [...new Set(userIds)];
+  // Gäste haben kein Konto und gehören deshalb in keine Kontaktliste.
+  const real = await prisma.user.findMany({
+    where: { id: { in: [...new Set(userIds)] }, isGuest: false },
+    select: { id: true },
+  });
+  const unique = real.map((user) => user.id);
   const pairs: { userId: string; friendId: string }[] = [];
   for (const a of unique) for (const b of unique) if (a !== b) pairs.push({ userId: a, friendId: b });
   if (pairs.length === 0) return;

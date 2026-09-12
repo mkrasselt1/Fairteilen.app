@@ -8,6 +8,7 @@ import { isSupportedCurrency } from "@/lib/money";
 import { GROUP_TYPES } from "@/lib/categories";
 import { ensureFriendships, logActivity } from "@/lib/social";
 import { newInviteToken } from "@/lib/tokens";
+import { colorForId } from "@/lib/format";
 import { deleteUpload } from "@/lib/uploads";
 import type { ActionState } from "@/lib/action-state";
 
@@ -150,9 +151,18 @@ export async function leaveGroupAction(_prev: ActionState, formData: FormData): 
     return { error: "Der Saldo in dieser Gruppe ist noch nicht ausgeglichen." };
   }
 
-  const target = await prisma.user.findUnique({ where: { id: targetUserId }, select: { name: true } });
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { name: true, isGuest: true },
+  });
   await prisma.groupMember.deleteMany({ where: { groupId, userId: targetUserId } });
   await logActivity({ type: "member_left", actorId: user.id, groupId, payload: { name: target?.name ?? "" } });
+
+  // Ein Gast existiert nur innerhalb seiner Gruppen – ohne Gruppe hat er keinen Zweck mehr.
+  if (target?.isGuest) {
+    const remaining = await prisma.groupMember.count({ where: { userId: targetUserId } });
+    if (remaining === 0) await prisma.user.delete({ where: { id: targetUserId } }).catch(() => undefined);
+  }
 
   if (targetUserId === user.id) {
     revalidatePath("/uebersicht");
@@ -210,4 +220,94 @@ export async function deleteGroupAction(_prev: ActionState, formData: FormData):
 
   revalidatePath("/uebersicht");
   redirect("/uebersicht");
+}
+
+export async function addGuestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+
+  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
+  if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
+  if (name.length < 2) return { error: "Bitte gib einen Namen an." };
+  if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
+
+  const existing = await prisma.groupMember.findFirst({
+    where: { groupId, user: { name, isGuest: true } },
+  });
+  if (existing) return { error: `„${name}“ ist in dieser Gruppe schon eingetragen.` };
+
+  const guest = await prisma.user.create({
+    data: { name, email: null, passwordHash: null, isGuest: true, avatarColor: colorForId(name + groupId) },
+  });
+  await prisma.groupMember.create({ data: { groupId, userId: guest.id } });
+  await logActivity({ type: "guest_added", actorId: user.id, groupId, payload: { name } });
+
+  revalidatePath(`/gruppen/${groupId}`);
+  return { success: `${name} ist jetzt als Person ohne Konto dabei.` };
+}
+
+/**
+ * Ein echtes Konto übernimmt einen Gast: Alle Anteile, Kommentare, Belege und
+ * Einträge des Gastes gehen auf das Konto über, danach verschwindet der Gast.
+ */
+export async function claimGuestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const token = String(formData.get("token") ?? "");
+  const guestId = String(formData.get("guestId") ?? "");
+
+  const group = await prisma.group.findUnique({ where: { inviteToken: token }, include: { members: true } });
+  if (!group) return { error: "Dieser Einladungslink ist ungültig." };
+
+  const guest = await prisma.user.findFirst({
+    where: { id: guestId, isGuest: true, memberships: { some: { groupId: group.id } } },
+  });
+  if (!guest) return { error: "Diese Person ist in der Gruppe nicht (mehr) eingetragen." };
+
+  const ownShares = await prisma.expenseShare.findMany({
+    where: { userId: user.id, expense: { shares: { some: { userId: guest.id } } } },
+    select: { id: true, expenseId: true, paidCents: true, oweCents: true },
+  });
+  const ownByExpense = new Map(ownShares.map((share) => [share.expenseId, share]));
+  const guestShares = await prisma.expenseShare.findMany({ where: { userId: guest.id } });
+
+  await prisma.$transaction(async (tx) => {
+    for (const share of guestShares) {
+      const own = ownByExpense.get(share.expenseId);
+      if (own) {
+        // Beide waren an derselben Ausgabe beteiligt – Beträge zusammenlegen.
+        await tx.expenseShare.update({
+          where: { id: own.id },
+          data: { paidCents: own.paidCents + share.paidCents, oweCents: own.oweCents + share.oweCents },
+        });
+        await tx.expenseShare.delete({ where: { id: share.id } });
+      } else {
+        await tx.expenseShare.update({ where: { id: share.id }, data: { userId: user.id } });
+      }
+    }
+
+    await tx.comment.updateMany({ where: { userId: guest.id }, data: { userId: user.id } });
+    await tx.attachment.updateMany({ where: { uploadedById: guest.id }, data: { uploadedById: user.id } });
+    await tx.activity.updateMany({ where: { actorId: guest.id }, data: { actorId: user.id } });
+    await tx.expense.updateMany({ where: { createdById: guest.id }, data: { createdById: user.id } });
+
+    // Mitgliedschaften des Gastes übernehmen, ohne Doppelungen zu erzeugen.
+    const guestGroups = await tx.groupMember.findMany({ where: { userId: guest.id }, select: { groupId: true } });
+    for (const membership of guestGroups) {
+      const already = await tx.groupMember.findFirst({ where: { groupId: membership.groupId, userId: user.id } });
+      if (!already) await tx.groupMember.create({ data: { groupId: membership.groupId, userId: user.id } });
+    }
+    await tx.user.delete({ where: { id: guest.id } });
+  });
+
+  await ensureFriendships([user.id, ...group.members.map((m) => m.userId)]);
+  await logActivity({
+    type: "guest_claimed",
+    actorId: user.id,
+    groupId: group.id,
+    payload: { name: user.name, guestName: guest.name },
+  });
+
+  revalidatePath("/uebersicht");
+  redirect(`/gruppen/${group.id}`);
 }

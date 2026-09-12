@@ -140,7 +140,10 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
             {memberBalances.map((member) => (
               <li key={member.user.id} className="flex items-center gap-3">
                 <Avatar user={member.user} size={28} />
-                <span className="flex-1 text-sm">{member.user.id === user.id ? "Du" : member.user.name}</span>
+                <span className="flex-1 text-sm">
+                  {member.user.id === user.id ? "Du" : member.user.name}
+                  {member.user.isGuest && <span className="hint"> · ohne Konto</span>}
+                </span>
                 <span className="text-sm">
                   {member.balances.length === 0 ? (
                     <span className="hint">ausgeglichen</span>

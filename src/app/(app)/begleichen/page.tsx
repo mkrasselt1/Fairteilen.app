@@ -6,7 +6,7 @@ import { SettleForm } from "./settle-form";
 export const metadata: Metadata = { title: "Begleichen" };
 export const dynamic = "force-dynamic";
 
-const userSelect = { id: true, name: true, email: true, avatarColor: true } as const;
+const userSelect = { id: true, name: true, email: true, avatarColor: true, isGuest: true } as const;
 
 export default async function SettlePage({
   searchParams,

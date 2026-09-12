@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import {
+  addGuestAction,
   addMemberAction,
   regenerateInviteAction,
   setGroupArchivedAction,
@@ -118,6 +119,36 @@ export function ArchiveForm({ groupId, archived }: { groupId: string; archived: 
       <SubmitButton className="btn-secondary" pendingLabel="…">
         {archived ? "Aus dem Archiv holen" : "Gruppe archivieren"}
       </SubmitButton>
+      <FormAlert state={state} />
+    </form>
+  );
+}
+
+export function AddGuestForm({ groupId }: { groupId: string }) {
+  const [state, formAction] = useActionState(addGuestAction, null);
+  return (
+    <form action={formAction} className="space-y-2">
+      <input type="hidden" name="groupId" value={groupId} />
+      <label className="label" htmlFor="guest-name">
+        Person ohne Konto hinzufügen
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <input
+          id="guest-name"
+          name="name"
+          required
+          maxLength={80}
+          className="input flex-1 min-w-[14rem]"
+          placeholder="z. B. Oma Gertrud"
+        />
+        <SubmitButton className="btn-secondary" pendingLabel="…">
+          Hinzufügen
+        </SubmitButton>
+      </div>
+      <p className="hint">
+        Für alle, die kein Konto anlegen möchten. Sie zählen bei Ausgaben und Salden ganz normal mit
+        und können später von einem echten Konto übernommen werden.
+      </p>
       <FormAlert state={state} />
     </form>
   );

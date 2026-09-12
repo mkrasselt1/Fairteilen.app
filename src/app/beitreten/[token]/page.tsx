@@ -47,7 +47,12 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
             Zur Gruppe
           </Link>
         ) : user ? (
-          <JoinForm token={token} />
+          <JoinForm
+            token={token}
+            guests={group.members
+              .filter((member) => member.user.isGuest)
+              .map((member) => ({ id: member.user.id, name: member.user.name }))}
+          />
         ) : (
           <div className="space-y-2">
             <Link href={`/registrieren?next=${next}`} className="btn-primary w-full">

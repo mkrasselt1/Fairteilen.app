@@ -35,7 +35,7 @@ export default async function FriendPage({ params }: { params: Promise<{ id: str
             <Avatar user={friend} size={48} />
             <div>
               <h1 className="text-xl font-bold">{friend.name}</h1>
-              <p className="hint">{friend.email}</p>
+              <p className="hint">{friend.isGuest ? "Person ohne Konto" : friend.email}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

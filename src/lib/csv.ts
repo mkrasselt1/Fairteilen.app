@@ -19,7 +19,7 @@ type ExportExpense = {
   isPayment: boolean;
   notes: string | null;
   group?: { name: string } | null;
-  shares: { paidCents: number; oweCents: number; user: { name: string; email: string } }[];
+  shares: { paidCents: number; oweCents: number; user: { name: string; email: string | null } }[];
 };
 
 export function expensesToCsv(expenses: ExportExpense[]): string {

@@ -37,7 +37,9 @@ export default async function FriendsPage() {
               <Avatar user={entry.user} size={38} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">{entry.user.name}</span>
-                <span className="hint block truncate">{entry.user.email}</span>
+                <span className="hint block truncate">
+                  {entry.user.isGuest ? "ohne Konto" : entry.user.email}
+                </span>
               </span>
               <BalancePills balances={entry.balances} />
             </Link>

@@ -88,10 +88,11 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   }
 
   const session = await prisma.session.findUnique({ where: { token }, include: { user: true } });
-  if (!session || session.expiresAt < new Date()) return null;
+  if (!session || session.expiresAt < new Date() || session.user.isGuest) return null;
 
+  // Gäste haben keine Sitzung, deshalb ist hier immer eine Adresse hinterlegt.
   const { id, email, name, currency, locale, avatarColor } = session.user;
-  return { id, email, name, currency, locale, avatarColor };
+  return { id, email: email ?? "", name, currency, locale, avatarColor };
 });
 
 export async function requireUser(): Promise<SessionUser> {

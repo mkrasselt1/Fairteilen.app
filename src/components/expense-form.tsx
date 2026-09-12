@@ -13,7 +13,13 @@ import { analyzeSplit, convertSplitValues, formatSplitValue, percentTotalBps } f
 import { SplitAllocationBar } from "@/components/split-feedback";
 import { toDateInputValue } from "@/lib/format";
 
-export type PersonOption = { id: string; name: string; email: string; avatarColor: string };
+export type PersonOption = {
+  id: string;
+  name: string;
+  email: string | null;
+  avatarColor: string;
+  isGuest?: boolean;
+};
 
 export type ExpenseFormGroup = {
   id: string;

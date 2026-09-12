@@ -8,7 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { Avatar } from "@/components/ui";
 import { CopyButton, ConfirmForm } from "@/components/forms";
 import { deleteGroupAction, leaveGroupAction } from "@/actions/groups";
-import { GroupSettingsForm, AddMemberForm, RegenerateInviteForm, ArchiveForm } from "./forms";
+import { GroupSettingsForm, AddMemberForm, AddGuestForm, RegenerateInviteForm, ArchiveForm } from "./forms";
 
 export const metadata: Metadata = { title: "Gruppeneinstellungen" };
 export const dynamic = "force-dynamic";
@@ -87,7 +87,9 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
                     {member.userId === user.id ? "Du" : member.user.name}
                     {member.role === "owner" && <span className="chip ml-2">Verwaltung</span>}
                   </span>
-                  <span className="hint block truncate">{member.user.email}</span>
+                  <span className="hint block truncate">
+                    {member.user.isGuest ? "ohne Konto" : member.user.email}
+                  </span>
                 </span>
                 <span className="text-right text-sm">
                   {balances.length === 0 ? (
@@ -119,8 +121,9 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
             );
           })}
         </ul>
-        <div className="mt-4">
+        <div className="mt-4 space-y-5">
           <AddMemberForm groupId={group.id} />
+          <AddGuestForm groupId={group.id} />
         </div>
       </section>
 

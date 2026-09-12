@@ -4,9 +4,9 @@ import { netBalances, pairwiseDebts, simplifyDebts, type Debt } from "./balances
 
 export type PersonBalance = { currency: string; amountCents: number };
 
-export type UserRef = { id: string; name: string; email: string; avatarColor: string };
+export type UserRef = { id: string; name: string; email: string | null; avatarColor: string; isGuest: boolean };
 
-const userSelect = { id: true, name: true, email: true, avatarColor: true } as const;
+const userSelect = { id: true, name: true, email: true, avatarColor: true, isGuest: true } as const;
 
 /** Alle aktiven Ausgaben, an denen die Person beteiligt ist (gezahlt oder Anteil). */
 async function expensesInvolvingUser(userId: string) {

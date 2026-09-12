@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import type { ExpenseFormGroup, PersonOption } from "@/components/expense-form";
 
-const userSelect = { id: true, name: true, email: true, avatarColor: true } as const;
+const userSelect = { id: true, name: true, email: true, avatarColor: true, isGuest: true } as const;
 
 export async function getExpenseFormOptions(userId: string): Promise<{
   groups: ExpenseFormGroup[];

@@ -37,6 +37,10 @@ function describe(
       return { icon: "↩️", text: `${actor} hat eine Zahlung gelöscht.` };
     case "group_created":
       return { icon: "👥", text: `${actor} hat die Gruppe „${payload.name}“ erstellt.` };
+    case "guest_added":
+      return { icon: "🪑", text: `${actor} hat „${payload.name}“ ohne Konto hinzugefügt.` };
+    case "guest_claimed":
+      return { icon: "🤝", text: `${actor} hat den Platz von „${payload.guestName}“ übernommen.` };
     case "group_archived":
       return { icon: "📦", text: `${actor} hat „${payload.name}“ archiviert.` };
     case "group_restored":
