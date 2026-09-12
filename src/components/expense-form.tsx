@@ -5,6 +5,7 @@ import Link from "next/link";
 import { saveExpenseAction } from "@/actions/expenses";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { Avatar } from "@/components/ui";
+import { ReceiptPicker } from "@/components/receipt-picker";
 import { CATEGORIES, CATEGORY_GROUPS } from "@/lib/categories";
 import { CURRENCIES, formatMoney, parseAmountToCents } from "@/lib/money";
 import { type SplitType } from "@/lib/split";
@@ -578,6 +579,14 @@ export function ExpenseForm({
           </label>
           <textarea id="notes" name="notes" rows={3} defaultValue={initial?.notes ?? ""} className="input" />
         </div>
+
+        <ReceiptPicker
+          hint={
+            initial
+              ? "Weitere Belege hinzufügen. Vorhandene bleiben erhalten."
+              : "Kassenbon oder Rechnung – wird beim Speichern mit hochgeladen."
+          }
+        />
       </section>
 
       <FormAlert state={state} />

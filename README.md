@@ -27,6 +27,7 @@ braucht nicht einmal ein Konto.
 |---|---|
 | **Gruppen** | Reise, WG, Paar, Veranstaltung, Projekt; Einladungslink, Mitgliederverwaltung, Gruppenwährung |
 | **Ausgaben** | Beschreibung, Betrag, Datum, 26 Kategorien, Notizen, Kommentare |
+| **Belege** | Kassenbon direkt mit der Handykamera fotografieren oder Datei anhängen (JPEG, PNG, WebP, PDF). Bilder werden im Browser verkleinert; nur Beteiligte können sie abrufen |
 | **Zahlende** | eine oder mehrere Personen pro Ausgabe |
 | **Aufteilung** | gleich · exakte Beträge · Prozent · Anteile · Zu-/Abschläge |
 | **Rückmeldung** | Balken über alle Beteiligten, Schieberegler je Person, Meldung „es fehlen noch …“ bzw. „… zu viel“; beim Wechsel der Aufteilungsart wird die bisherige Verteilung umgerechnet |
@@ -121,6 +122,7 @@ Ein normales Next.js-Projekt: Repository verbinden, `DATABASE_URL` (Postgres), `
 | `DATABASE_URL` | ja | `mysql://benutzer:passwort@host:3306/fairteilen` (bzw. `postgresql://…` / `file:./dev.db`) |
 | `AUTH_SECRET` | ja | Signiert die Sitzungs-Cookies, mindestens 32 Zeichen |
 | `APP_URL` | empfohlen | Öffentliche Basis-URL – für Einladungs- und OAuth-Links |
+| `UPLOAD_DIR` | nein | Ablage der Belege, Standard `./uploads`. Gehostet besser außerhalb des Projektordners |
 | `ALLOW_REGISTRATION` | nein | `false` schließt die Registrierung (Beitritt nur per Einladungslink) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | nein | aktiviert „Mit Google anmelden“ |
 | `APPLE_CLIENT_ID` / `APPLE_TEAM_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY` | nein | aktiviert „Mit Apple anmelden“ |
@@ -205,9 +207,17 @@ tests/              Tests (node:test) und Browsertest
 
 ---
 
+## Sicherung
+
+Zu einer vollständigen Sicherung gehören **zwei** Dinge: die Datenbank und das Verzeichnis aus
+`UPLOAD_DIR` mit den Belegen.
+
 ## Datenschutz
 
-- Es werden nur die Daten gespeichert, die eingegeben werden: Name, E-Mail-Adresse und die Ausgaben.
+- Es werden nur die Daten gespeichert, die eingegeben werden: Name, E-Mail-Adresse, die Ausgaben
+  und hochgeladene Belege.
+- Belege liegen außerhalb des Web-Verzeichnisses und werden nur nach Prüfung der Berechtigung
+  ausgeliefert; der Dateityp wird an den ersten Bytes geprüft, nicht an der Endung.
 - Keine Analyse-Dienste, keine Werbung, keine Weitergabe an Dritte, keine externen Schriftarten.
 - Der Gastmodus kommt vollständig ohne Server aus.
 - Selbst gehostet bleiben alle Daten auf der eigenen Instanz.

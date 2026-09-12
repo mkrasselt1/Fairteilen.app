@@ -13,7 +13,7 @@ type ListExpense = {
   isPayment: boolean;
   group?: { id: string; name: string } | null;
   shares: { userId: string; paidCents: number; oweCents: number; user: { name: string } }[];
-  _count?: { comments: number };
+  _count?: { comments: number; attachments: number };
 };
 
 function monthLabel(date: Date): string {
@@ -80,6 +80,7 @@ export function ExpenseList({
                         {expense.isPayment ? "überwiesen" : "bezahlt"}
                         {showGroup && expense.group ? ` · ${expense.group.name}` : ""}
                         {expense._count && expense._count.comments > 0 ? ` · 💬 ${expense._count.comments}` : ""}
+                        {expense._count && expense._count.attachments > 0 ? ` · 📎 ${expense._count.attachments}` : ""}
                       </span>
                     </span>
                     <span className="shrink-0 text-right">

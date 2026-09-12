@@ -10,6 +10,8 @@ import { Avatar } from "@/components/ui";
 import { ConfirmForm } from "@/components/forms";
 import { deleteExpenseAction, restoreExpenseAction } from "@/actions/expenses";
 import { CommentBox } from "./comment-box";
+import { AddReceiptForm, DeleteReceiptButton } from "./receipts";
+import { formatBytes } from "@/lib/uploads";
 
 export const metadata: Metadata = { title: "Ausgabe" };
 export const dynamic = "force-dynamic";
@@ -129,6 +131,58 @@ export default async function ExpensePage({ params }: { params: Promise<{ id: st
             </ConfirmForm>
           )}
         </div>
+      </section>
+
+      <section className="card p-5">
+        <h2 className="mb-1 font-semibold">Belege</h2>
+        <p className="hint mb-4">
+          Nur Beteiligte dieser Ausgabe können die Belege sehen.
+        </p>
+
+        {expense.attachments.length > 0 && (
+          <ul className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {expense.attachments.map((attachment) => (
+              <li key={attachment.id} className="group relative">
+                <a
+                  href={`/api/belege/${attachment.id}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="block overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
+                  title={`${attachment.originalName} öffnen`}
+                >
+                  {attachment.mimeType.startsWith("image/") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/api/belege/${attachment.id}`}
+                      alt={attachment.originalName}
+                      className="h-36 w-full object-cover transition group-hover:opacity-90"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="flex h-36 w-full flex-col items-center justify-center gap-1 text-4xl" aria-hidden>
+                      📄<span className="text-xs text-slate-500">PDF</span>
+                    </span>
+                  )}
+                </a>
+                <div className="absolute right-2 top-2 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+                  <DeleteReceiptButton attachmentId={attachment.id} name={attachment.originalName} />
+                </div>
+                <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400" title={attachment.originalName}>
+                  {attachment.originalName}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  {formatBytes(attachment.sizeBytes)} ·{" "}
+                  {attachment.uploadedById === user.id ? "von dir" : `von ${attachment.uploadedBy.name}`} ·{" "}
+                  <a href={`/api/belege/${attachment.id}?download`} className="hover:underline">
+                    herunterladen
+                  </a>
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {!expense.deletedAt && <AddReceiptForm expenseId={expense.id} />}
       </section>
 
       <section className="card p-5">

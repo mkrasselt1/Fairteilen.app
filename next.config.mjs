@@ -2,7 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverActions: { bodySizeLimit: "2mb" },
+    // Belegfotos werden im Browser verkleinert; die Grenze lässt Luft für PDFs.
+    serverActions: { bodySizeLimit: "12mb" },
   },
 };
 

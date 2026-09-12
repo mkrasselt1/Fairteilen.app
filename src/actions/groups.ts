@@ -8,6 +8,7 @@ import { isSupportedCurrency } from "@/lib/money";
 import { GROUP_TYPES } from "@/lib/categories";
 import { ensureFriendships, logActivity } from "@/lib/social";
 import { newInviteToken } from "@/lib/tokens";
+import { deleteUpload } from "@/lib/uploads";
 import type { ActionState } from "@/lib/action-state";
 
 export async function createGroupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -199,7 +200,14 @@ export async function deleteGroupAction(_prev: ActionState, formData: FormData):
     return { error: "Nur die Person, die die Gruppe erstellt hat, kann sie löschen." };
   }
 
+  // Die Datenbank räumt die Datensätze per Kaskade ab – die Dateien nicht.
+  const attachments = await prisma.attachment.findMany({
+    where: { expense: { groupId } },
+    select: { storedName: true },
+  });
   await prisma.group.delete({ where: { id: groupId } });
+  for (const attachment of attachments) await deleteUpload(attachment.storedName);
+
   revalidatePath("/uebersicht");
   redirect("/uebersicht");
 }

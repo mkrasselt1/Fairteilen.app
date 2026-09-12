@@ -25,6 +25,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: "mysql://fairteilen:${DB_PASSWORD:-fairteilen}@db:3306/fairteilen"
+      UPLOAD_DIR: "/data/belege"
       AUTH_SECRET: "${AUTH_SECRET:?bitte in .env setzen: openssl rand -base64 48}"
       APP_URL: "${APP_URL:-http://localhost:3000}"
       # Optional: Anmeldung über Google / Apple
@@ -34,7 +35,10 @@ services:
       APPLE_TEAM_ID: "${APPLE_TEAM_ID:-}"
       APPLE_KEY_ID: "${APPLE_KEY_ID:-}"
       APPLE_PRIVATE_KEY: "${APPLE_PRIVATE_KEY:-}"
+    volumes:
+      - fairteilen-belege:/data/belege
     restart: unless-stopped
 
 volumes:
   fairteilen-db:
+  fairteilen-belege:

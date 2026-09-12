@@ -61,6 +61,7 @@ Diese Werte werden gebraucht:
 | `DATABASE_URL` | `mysql://fairteilen:PASSWORT@localhost:3306/fairteilen` |
 | `AUTH_SECRET` | langer Zufallswert, z. B. aus `openssl rand -base64 48` |
 | `APP_URL` | `https://fairteilen.app` |
+| `UPLOAD_DIR` | `/var/www/vhosts/fairteilen.app/private/belege` |
 | `NODE_ENV` | `production` |
 
 ### Weg A: Datei `.env` im Anwendungsstamm — empfohlen
@@ -71,6 +72,7 @@ Eine Datei `/httpdocs/.env` anlegen (Plesk → *Dateien*, oder per SSH `nano /ht
 DATABASE_URL="mysql://fairteilen:PASSWORT@localhost:3306/fairteilen"
 AUTH_SECRET="hier-den-zufallswert-einsetzen"
 APP_URL="https://fairteilen.app"
+UPLOAD_DIR="/var/www/vhosts/fairteilen.app/private/belege"
 NODE_ENV="production"
 ```
 
@@ -89,6 +91,19 @@ die Umbrüche als `\n` schreiben (die Anwendung setzt sie beim Start zurück) �
 nutzen. Ob Plesk diese Variablen auch an die über die Oberfläche gestarteten npm-Skripte
 weitergibt, unterscheidet sich je nach Version; für `setup` und `db:push` ist Weg A deshalb der
 verlässlichere Weg.
+
+### Belege
+
+Hochgeladene Belege sind Dateien, keine Datenbankinhalte. `UPLOAD_DIR` sollte deshalb **außerhalb
+von `httpdocs`** liegen – sonst kann eine neue Bereitstellung sie mit wegräumen, und ohne den
+Umweg über die Anwendung wären sie unter Umständen direkt abrufbar. Verzeichnis einmalig anlegen:
+
+```bash
+mkdir -p /var/www/vhosts/fairteilen.app/private/belege
+```
+
+Für Sicherungen gilt: Datenbank **und** dieses Verzeichnis zusammen sichern – einzeln ergeben sie
+kein vollständiges Bild.
 
 ### Hinweise zu den Werten
 

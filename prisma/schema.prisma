@@ -31,6 +31,7 @@ model User {
   shares            ExpenseShare[]
   comments          Comment[]
   activities        Activity[]     @relation("ActivityActor")
+  attachments       Attachment[]
   friendshipsFrom   Friendship[]   @relation("FriendshipUser")
   friendshipsTo     Friendship[]   @relation("FriendshipFriend")
 }
@@ -131,9 +132,10 @@ model Expense {
 
   group     Group?         @relation(fields: [groupId], references: [id], onDelete: Cascade)
   createdBy User           @relation("ExpenseCreator", fields: [createdById], references: [id])
-  shares    ExpenseShare[]
-  comments  Comment[]
-  activities Activity[]
+  shares      ExpenseShare[]
+  comments    Comment[]
+  activities  Activity[]
+  attachments Attachment[]
 
   @@index([groupId])
   @@index([date])
@@ -153,6 +155,25 @@ model ExpenseShare {
 
   @@unique([expenseId, userId])
   @@index([userId])
+}
+
+/// Beleg zu einer Ausgabe – Foto oder PDF. Die Datei liegt außerhalb des
+/// Web-Verzeichnisses und wird nur über eine geprüfte Route ausgeliefert.
+model Attachment {
+  id           String   @id @default(cuid())
+  expenseId    String
+  uploadedById String
+  /// Dateiname auf der Platte, zufällig vergeben.
+  storedName   String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  createdAt    DateTime @default(now())
+
+  expense    Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
 }
 
 model Comment {

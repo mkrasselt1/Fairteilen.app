@@ -14,6 +14,7 @@ import {
 import { isSupportedCurrency } from "@/lib/money";
 import { colorForId } from "@/lib/format";
 import type { ActionState } from "@/lib/action-state";
+import { deleteUpload } from "@/lib/uploads";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -134,7 +135,13 @@ export async function deleteAccountAction(_prev: ActionState, formData: FormData
     return { error: "Es bestehen noch offene Salden. Bitte gleiche zuerst alle Beträge aus." };
   }
 
+  const attachments = await prisma.attachment.findMany({
+    where: { uploadedById: user.id },
+    select: { storedName: true },
+  });
   await prisma.user.delete({ where: { id: user.id } });
+  for (const attachment of attachments) await deleteUpload(attachment.storedName);
+
   await destroySession();
   redirect("/anmelden");
 }

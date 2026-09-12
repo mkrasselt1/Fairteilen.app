@@ -8,6 +8,7 @@ import { isSupportedCurrency, parseAmountToCents } from "@/lib/money";
 import { CATEGORIES } from "@/lib/categories";
 import { computeShares, SPLIT_TYPES, SplitError, validatePayments, type SplitType } from "@/lib/split";
 import { ensureFriendships, logActivity } from "@/lib/social";
+import { deleteUpload, prepareUpload, writeUpload, UploadError } from "@/lib/uploads";
 import type { ActionState } from "@/lib/action-state";
 
 const RECURRENCES = ["none", "daily", "weekly", "monthly", "yearly"] as const;
@@ -160,8 +161,12 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
   const user = await requireUser();
   let parsed: ParsedForm;
   let shares: { userId: string; paidCents: number; oweCents: number }[];
+  let preparedAttachments: Awaited<ReturnType<typeof prepareAttachments>> = [];
 
   try {
+    // Belege zuerst prüfen: Eine unbrauchbare Datei soll die Ausgabe gar nicht
+    // erst anlegen, statt später kommentarlos zu fehlen.
+    preparedAttachments = await prepareAttachments(attachmentsFromForm(formData));
     parsed = parseExpenseForm(formData);
     const payments = validatePayments(parsed.amountCents, parsed.payments);
     const owed = computeShares(parsed.amountCents, parsed.splitType, parsed.participants);
@@ -177,7 +182,7 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
 
     await assertAccess(user.id, parsed.groupId, shares.map((s) => s.userId));
   } catch (error) {
-    if (error instanceof SplitError) return { error: error.message };
+    if (error instanceof SplitError || error instanceof UploadError) return { error: error.message };
     throw error;
   }
 
@@ -233,6 +238,9 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
   }
 
   await ensureFriendships(shares.map((s) => s.userId));
+
+  // Beim Anlegen und Bearbeiten mitgeschickte Belege übernehmen.
+  if (preparedAttachments.length > 0) await writeAttachments(expenseId, user.id, preparedAttachments);
 
   revalidatePath("/uebersicht");
   revalidatePath("/aktivitaet");
@@ -454,4 +462,92 @@ export async function materializeRecurringExpenses(userId: string): Promise<numb
     });
   }
   return created;
+}
+
+
+/** Zugriff auf eine Ausgabe: beteiligt, Gruppenmitglied oder Ersteller. */
+function expenseAccessFilter(userId: string) {
+  return {
+    OR: [
+      { shares: { some: { userId } } },
+      { group: { members: { some: { userId } } } },
+      { createdById: userId },
+    ],
+  };
+}
+
+/**
+ * Alle Belege eines Formulars zuerst prüfen und erst dann schreiben: Schlägt eine
+ * Datei fehl, wird keine gespeichert. So kann nichts halb ankommen und nichts
+ * beim erneuten Versuch doppelt landen.
+ */
+async function prepareAttachments(files: File[]) {
+  const usable = files.filter((file) => file && file.size > 0);
+  const prepared = [];
+  for (const file of usable) {
+    try {
+      prepared.push(await prepareUpload(file));
+    } catch (error) {
+      throw new UploadError(
+        error instanceof UploadError ? `${file.name}: ${error.message}` : `${file.name}: konnte nicht gelesen werden.`,
+      );
+    }
+  }
+  return prepared;
+}
+
+async function writeAttachments(
+  expenseId: string,
+  userId: string,
+  prepared: Awaited<ReturnType<typeof prepareAttachments>>,
+): Promise<void> {
+  for (const item of prepared) {
+    const stored = await writeUpload(item);
+    await prisma.attachment.create({ data: { ...stored, expenseId, uploadedById: userId } });
+  }
+}
+
+function attachmentsFromForm(formData: FormData): File[] {
+  return formData.getAll("beleg").filter((entry): entry is File => entry instanceof File);
+}
+
+export async function addAttachmentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const expenseId = String(formData.get("expenseId") ?? "");
+
+  const expense = await prisma.expense.findFirst({ where: { id: expenseId, ...expenseAccessFilter(user.id) } });
+  if (!expense) return { error: "Diese Ausgabe wurde nicht gefunden." };
+
+  const files = attachmentsFromForm(formData);
+  if (files.length === 0 || files.every((file) => file.size === 0)) {
+    return { error: "Bitte wähle mindestens eine Datei aus." };
+  }
+
+  let prepared;
+  try {
+    prepared = await prepareAttachments(files);
+  } catch (error) {
+    if (error instanceof UploadError) return { error: `${error.message} Es wurde nichts hochgeladen.` };
+    throw error;
+  }
+
+  await writeAttachments(expenseId, user.id, prepared);
+  revalidatePath(`/ausgaben/${expenseId}`);
+  return { success: prepared.length === 1 ? "Beleg hinzugefügt." : `${prepared.length} Belege hinzugefügt.` };
+}
+
+export async function deleteAttachmentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const attachmentId = String(formData.get("attachmentId") ?? "");
+
+  const attachment = await prisma.attachment.findFirst({
+    where: { id: attachmentId, expense: expenseAccessFilter(user.id) },
+  });
+  if (!attachment) return { error: "Dieser Beleg wurde nicht gefunden." };
+
+  await prisma.attachment.delete({ where: { id: attachment.id } });
+  await deleteUpload(attachment.storedName);
+
+  revalidatePath(`/ausgaben/${attachment.expenseId}`);
+  return { success: "Beleg gelöscht." };
 }

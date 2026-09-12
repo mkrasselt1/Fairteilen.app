@@ -25,8 +25,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
 
-RUN chown -R nextjs:nodejs /app/.next
+RUN mkdir -p /data/belege && chown -R nextjs:nodejs /app/.next /data
 USER nextjs
+VOLUME /data/belege
 EXPOSE 3000
 
 # Beim Start auf die Datenbank warten, das Schema anwenden, dann den Server starten.

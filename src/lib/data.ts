@@ -169,7 +169,7 @@ export async function getGroupDetail(groupId: string, userId: string) {
     include: {
       shares: { include: { user: { select: userSelect } } },
       createdBy: { select: userSelect },
-      _count: { select: { comments: true } },
+      _count: { select: { comments: true, attachments: true } },
     },
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
@@ -210,7 +210,7 @@ export async function getFriendDetail(userId: string, friendId: string) {
       shares: { include: { user: { select: userSelect } } },
       group: { select: { id: true, name: true } },
       createdBy: { select: userSelect },
-      _count: { select: { comments: true } },
+      _count: { select: { comments: true, attachments: true } },
     },
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
@@ -263,6 +263,7 @@ export async function getExpenseDetail(expenseId: string, userId: string) {
       group: { select: { id: true, name: true, currency: true, members: { include: { user: { select: userSelect } } } } },
       createdBy: { select: userSelect },
       comments: { include: { user: { select: userSelect } }, orderBy: { createdAt: "asc" } },
+      attachments: { include: { uploadedBy: { select: userSelect } }, orderBy: { createdAt: "asc" } },
     },
   });
   return expense;
