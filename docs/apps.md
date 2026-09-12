@@ -103,9 +103,42 @@ Umwegs über den Browser:
    - die zusätzlichen Client-IDs als gültige Empfänger (`aud`), denn die native Kennung
      unterscheidet sich von der Web-Kennung.
 
-Solange das nicht eingebaut ist: In der App die Anbieter-Schaltflächen ausblenden und auf
-E-Mail und Passwort setzen. Wer sich im Web über Google angemeldet hat, kann sich unter
-*Konto* → *Passwort setzen* eines vergeben und sich damit auch in der App anmelden.
+#### Der Server ist dafür vorbereitet
+
+Die Gegenstelle ist eingebaut. Nötig sind auf dem Server nur die zusätzlichen Kennungen:
+
+```
+GOOGLE_CLIENT_ID_IOS="…apps.googleusercontent.com"
+GOOGLE_CLIENT_ID_ANDROID="…apps.googleusercontent.com"
+APPLE_NATIVE_CLIENT_ID="app.fairteilen"
+```
+
+Ablauf in der App – drei Schritte:
+
+```js
+// 1. Einmal-Nonce holen
+const { nonce } = await (await fetch("/api/auth/native/nonce", { method: "POST" })).json();
+
+// 2. Native Anmeldung mit genau dieser Nonce
+const { idToken } = await GoogleAuth.signIn({ nonce });
+// bei Apple: SignInWithApple.authorize({ nonce }) – dort steht im Token der
+// SHA-256-Wert der Nonce, das erkennt der Server selbst
+
+// 3. Token einlösen; danach ist die Sitzung im WebView gesetzt
+const response = await fetch("/api/auth/native", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ provider: "google", idToken, nonce }),
+});
+```
+
+Geprüft werden Signatur gegen die Schlüssel des Anbieters, Aussteller, Empfänger (auch die
+nativen Kennungen), Laufzeit und die Nonce. Jede Nonce gilt zehn Minuten und lässt sich genau
+einmal einlösen – ein abgefangenes Token kann also nicht ein zweites Mal verwendet werden.
+
+Bis die App gebaut ist: In der App-Hülle die Anbieter-Schaltflächen ausblenden und auf E-Mail und
+Passwort setzen. Wer sich im Web über Google angemeldet hat, kann sich unter *Konto* →
+*Passwort setzen* eines vergeben und sich damit auch in der App anmelden.
 
 ### Wichtig für die Store-Prüfung
 

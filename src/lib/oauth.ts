@@ -27,9 +27,18 @@ export type ProviderConfig = {
   issuers: string[];
   scope: string;
   clientId: string;
+  /**
+   * Weitere gültige Empfänger für Token aus nativen Apps. iOS und Android
+   * bekommen bei Google eigene Kennungen, bei Apple ist es die Bundle-ID.
+   */
+  nativeAudiences: string[];
   /** Apple verlangt bei angefordertem Namen/E-Mail `form_post`. */
   responseMode?: "form_post";
 };
+
+function nativeAudiencesFrom(...values: (string | undefined)[]): string[] {
+  return values.flatMap((value) => (value ? value.split(",").map((entry) => entry.trim()).filter(Boolean) : []));
+}
 
 export function googleConfig(): ProviderConfig | null {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -43,6 +52,7 @@ export function googleConfig(): ProviderConfig | null {
     issuers: ["https://accounts.google.com", "accounts.google.com"],
     scope: "openid email profile",
     clientId,
+    nativeAudiences: nativeAudiencesFrom(process.env.GOOGLE_CLIENT_ID_IOS, process.env.GOOGLE_CLIENT_ID_ANDROID),
   };
 }
 
@@ -60,6 +70,7 @@ export function appleConfig(): ProviderConfig | null {
     issuers: ["https://appleid.apple.com"],
     scope: "name email",
     clientId,
+    nativeAudiences: nativeAudiencesFrom(process.env.APPLE_NATIVE_CLIENT_ID),
     responseMode: "form_post",
   };
 }
@@ -209,13 +220,21 @@ export async function verifyIdToken(
   if (!config.issuers.includes(claims.iss)) throw new Error("Unerwarteter Aussteller des ID-Tokens.");
 
   const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-  if (!audiences.includes(config.clientId)) throw new Error("ID-Token gehört zu einer anderen Anwendung.");
+  const accepted = [config.clientId, ...config.nativeAudiences];
+  if (!audiences.some((audience) => accepted.includes(audience))) {
+    throw new Error("ID-Token gehört zu einer anderen Anwendung.");
+  }
 
   const now = Math.floor(Date.now() / 1000);
   if (claims.exp <= now) throw new Error("Das ID-Token ist abgelaufen.");
   if (claims.iat > now + 300) throw new Error("Das ID-Token liegt in der Zukunft.");
 
-  if (!claims.nonce || claims.nonce !== expectedNonce) throw new Error("Nonce stimmt nicht überein.");
+  // Beim nativen Verfahren von Apple steht im Token der SHA-256-Wert der Nonce,
+  // bei Google die Nonce selbst. Beide Formen sind zulässig.
+  const hashedNonce = crypto.createHash("sha256").update(expectedNonce).digest("hex");
+  if (!claims.nonce || (claims.nonce !== expectedNonce && claims.nonce !== hashedNonce)) {
+    throw new Error("Nonce stimmt nicht überein.");
+  }
 
   return claims;
 }

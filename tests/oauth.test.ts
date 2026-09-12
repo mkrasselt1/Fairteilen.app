@@ -22,6 +22,7 @@ const CONFIG: ProviderConfig = {
   issuers: ["https://issuer.test"],
   scope: "openid email profile",
   clientId: "client-123",
+  nativeAudiences: ["ios-client-456", "android-client-789"],
 };
 
 const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -99,6 +100,35 @@ test("falsche Nonce, falscher Aussteller, falscher Empfänger und Ablauf werden 
     await assert.rejects(
       () => verifyIdToken(CONFIG, signIdToken(claims(), "unbekannt"), "nonce-abc"),
       /Signaturschlüssel/,
+    );
+  });
+});
+
+test("Token aus der nativen App werden anerkannt", async () => {
+  await withJwks(async () => {
+    for (const audience of ["ios-client-456", "android-client-789"]) {
+      const verified = await verifyIdToken(CONFIG, signIdToken(claims({ aud: audience })), "nonce-abc");
+      assert.equal(verified.sub, "user-1");
+    }
+    // Eine fremde Kennung bleibt abgelehnt.
+    await assert.rejects(
+      () => verifyIdToken(CONFIG, signIdToken(claims({ aud: "fremde-app" })), "nonce-abc"),
+      /anderen Anwendung/,
+    );
+  });
+});
+
+test("Apple schickt die Nonce als SHA-256-Wert", async () => {
+  await withJwks(async () => {
+    const hashed = crypto.createHash("sha256").update("nonce-abc").digest("hex");
+    const verified = await verifyIdToken(CONFIG, signIdToken(claims({ nonce: hashed })), "nonce-abc");
+    assert.equal(verified.sub, "user-1");
+
+    // Ein fremder Hashwert passt weiterhin nicht.
+    const wrong = crypto.createHash("sha256").update("andere-nonce").digest("hex");
+    await assert.rejects(
+      () => verifyIdToken(CONFIG, signIdToken(claims({ nonce: wrong })), "nonce-abc"),
+      /Nonce/,
     );
   });
 });

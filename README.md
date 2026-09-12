@@ -127,6 +127,7 @@ Ein normales Next.js-Projekt: Repository verbinden, `DATABASE_URL` (Postgres), `
 | `ALLOW_REGISTRATION` | nein | `false` schließt die Registrierung (Beitritt nur per Einladungslink) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | nein | aktiviert „Mit Google anmelden“ |
 | `APPLE_CLIENT_ID` / `APPLE_TEAM_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY` | nein | aktiviert „Mit Apple anmelden“ |
+| `GOOGLE_CLIENT_ID_IOS` / `GOOGLE_CLIENT_ID_ANDROID` / `APPLE_NATIVE_CLIENT_ID` | nein | zusätzliche Kennungen für die Anmeldung aus der App ([docs/apps.md](docs/apps.md)) |
 
 Sind die Werte eines Anbieters nicht gesetzt, erscheint dessen Knopf gar nicht erst.
 

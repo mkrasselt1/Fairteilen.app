@@ -53,6 +53,18 @@ model Session {
   @@index([userId])
 }
 
+/// Einmal-Nonce für die native Anmeldung in der App. Verhindert, dass ein
+/// abgefangenes ID-Token ein zweites Mal eingelöst werden kann.
+model LoginNonce {
+  id        String    @id @default(cuid())
+  value     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([expiresAt])
+}
+
 /// Verknüpftes Konto bei einem externen Anbieter (Google, Apple).
 model OAuthAccount {
   id                String   @id @default(cuid())
