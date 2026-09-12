@@ -34,6 +34,10 @@ braucht nicht einmal ein Konto.
 | **Salden** | pro Person, pro Gruppe und insgesamt – getrennt nach Währung |
 | **Ausgleich** | optionale Schuldenvereinfachung (minimale Anzahl Überweisungen) |
 | **Zahlungen** | „Begleichen“ erfasst echte Überweisungen und verrechnet sie |
+| **Zahlungsangaben** | Wero, IBAN und wahlweise PayPal-Adresse im Profil; beim Begleichen wird angezeigt, wohin das Geld soll. Reine Anzeige – es läuft keine Zahlung über Fairteilen |
+| **Gäste** | Personen ohne Konto können mitgeführt werden und ihren Platz später selbst übernehmen |
+| **Ausgleich** | Eine Seite über alle Gruppen hinweg: jede Person einmal, mit Nettobetrag und Herkunft |
+| **Fortsetzen** | Offene Beträge in eine neue Gruppe übertragen, wenn dieselben Leute weitermachen |
 | **Wiederkehrend** | täglich, wöchentlich, monatlich, jährlich – mit optionalem Enddatum |
 | **Verlauf** | Aktivitätsfeed über alle Gruppen |
 | **Export** | CSV je Gruppe oder für alles |
@@ -217,8 +221,10 @@ Zu einer vollständigen Sicherung gehören **zwei** Dinge: die Datenbank und das
 
 ## Datenschutz
 
-- Es werden nur die Daten gespeichert, die eingegeben werden: Name, E-Mail-Adresse, die Ausgaben
-  und hochgeladene Belege.
+- Es werden nur die Daten gespeichert, die eingegeben werden: Name, E-Mail-Adresse, die Ausgaben,
+  hochgeladene Belege und – falls hinterlegt – Zahlungsangaben.
+- Zahlungsangaben sehen nur Personen, mit denen etwas geteilt wird. Es gibt keine Anbindung an
+  einen Zahlungsdienst; die Angaben werden ausschließlich angezeigt.
 - Belege liegen außerhalb des Web-Verzeichnisses und werden nur nach Prüfung der Berechtigung
   ausgeliefert; der Dateityp wird an den ersten Bytes geprüft, nicht an der Endung.
 - Keine Analyse-Dienste, keine Werbung, keine Weitergabe an Dritte, keine externen Schriftarten.

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/ui";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { configuredProviders } from "@/lib/oauth";
-import { ChangePasswordForm, DeleteAccountForm, ProfileForm, UnlinkForm } from "./forms";
+import { ChangePasswordForm, DeleteAccountForm, PaymentDetailsForm, ProfileForm, UnlinkForm } from "./forms";
 
 export const metadata: Metadata = { title: "Konto" };
 export const dynamic = "force-dynamic";
@@ -17,7 +17,14 @@ export default async function AccountPage() {
     prisma.expenseShare.count({ where: { userId: user.id, expense: { deletedAt: null } } }),
     prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { passwordHash: true, oauthAccounts: { select: { id: true, provider: true, email: true } } },
+      select: {
+        passwordHash: true,
+        iban: true,
+        weroContact: true,
+        paypalEmail: true,
+        paymentNote: true,
+        oauthAccounts: { select: { id: true, provider: true, email: true } },
+      },
     }),
   ]);
 
@@ -41,6 +48,23 @@ export default async function AccountPage() {
       <section className="card p-5">
         <h2 className="mb-4 font-semibold">Profil</h2>
         <ProfileForm user={user} />
+      </section>
+
+      <section className="card p-5">
+        <h2 className="mb-1 font-semibold">Zahlungsangaben</h2>
+        <p className="hint mb-4">
+          Damit andere wissen, wohin sie überweisen sollen. Die Angaben sehen nur Personen, mit denen
+          du etwas teilst – und sie werden ausschließlich angezeigt, es läuft keine Zahlung über
+          Fairteilen.
+        </p>
+        <PaymentDetailsForm
+          details={{
+            iban: account.iban,
+            weroContact: account.weroContact,
+            paypalEmail: account.paypalEmail,
+            paymentNote: account.paymentNote,
+          }}
+        />
       </section>
 
       <section className="card p-5">

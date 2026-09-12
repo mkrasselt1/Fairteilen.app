@@ -15,6 +15,7 @@ import { isSupportedCurrency } from "@/lib/money";
 import { colorForId } from "@/lib/format";
 import type { ActionState } from "@/lib/action-state";
 import { deleteUpload } from "@/lib/uploads";
+import { normalizeIban, validateIban, validateWeroContact } from "@/lib/payment";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -163,4 +164,36 @@ export async function unlinkOAuthAction(_prev: ActionState, formData: FormData):
   await prisma.oAuthAccount.deleteMany({ where: { userId: user.id, provider } });
   revalidatePath("/konto");
   return { success: "Verknüpfung entfernt." };
+}
+
+export async function updatePaymentDetailsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const iban = normalizeIban(String(formData.get("iban") ?? ""));
+  const weroContact = String(formData.get("weroContact") ?? "").trim();
+  const paypalEmail = String(formData.get("paypalEmail") ?? "").trim().toLowerCase();
+  const paymentNote = String(formData.get("paymentNote") ?? "").trim();
+
+  const ibanProblem = validateIban(iban);
+  if (ibanProblem) return { error: ibanProblem };
+
+  const weroProblem = validateWeroContact(weroContact);
+  if (weroProblem) return { error: weroProblem };
+
+  if (paypalEmail && !EMAIL_RE.test(paypalEmail)) {
+    return { error: "Bitte gib für PayPal eine gültige E-Mail-Adresse an." };
+  }
+  if (paymentNote.length > 500) return { error: "Der Hinweis darf höchstens 500 Zeichen lang sein." };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      iban: iban || null,
+      weroContact: weroContact || null,
+      paypalEmail: paypalEmail || null,
+      paymentNote: paymentNote || null,
+    },
+  });
+
+  revalidatePath("/konto");
+  return { success: "Zahlungsangaben gespeichert." };
 }

@@ -5,8 +5,10 @@ import {
   changePasswordAction,
   deleteAccountAction,
   unlinkOAuthAction,
+  updatePaymentDetailsAction,
   updateProfileAction,
 } from "@/actions/auth";
+import { formatIban, type PaymentDetails } from "@/lib/payment";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { ConfirmDialog } from "@/components/modal";
 import { CURRENCIES } from "@/lib/money";
@@ -165,6 +167,72 @@ export function UnlinkForm({ provider, label }: { provider: string; label: strin
       />
 
       {state?.error && <span className="negative text-xs">{state.error}</span>}
+    </form>
+  );
+}
+
+export function PaymentDetailsForm({ details }: { details: PaymentDetails }) {
+  const [state, formAction] = useActionState(updatePaymentDetailsAction, null);
+  return (
+    <form action={formAction} className="space-y-4">
+      <div>
+        <label className="label" htmlFor="weroContact">
+          Wero
+        </label>
+        <input
+          id="weroContact"
+          name="weroContact"
+          defaultValue={details.weroContact ?? ""}
+          className="input"
+          placeholder="+49 170 1234567 oder name@example.com"
+          autoComplete="tel"
+        />
+        <p className="hint mt-1">
+          Handynummer oder E-Mail-Adresse, mit der du Wero in deiner Banking-App nutzt.
+        </p>
+      </div>
+      <div>
+        <label className="label" htmlFor="iban">
+          IBAN
+        </label>
+        <input
+          id="iban"
+          name="iban"
+          defaultValue={details.iban ? formatIban(details.iban) : ""}
+          className="input font-mono"
+          placeholder="DE89 3704 0044 0532 0130 00"
+          spellCheck={false}
+        />
+      </div>
+      <div>
+        <label className="label" htmlFor="paypalEmail">
+          PayPal-Adresse <span className="hint">(optional)</span>
+        </label>
+        <input
+          id="paypalEmail"
+          name="paypalEmail"
+          type="email"
+          defaultValue={details.paypalEmail ?? ""}
+          className="input"
+          placeholder="name@example.com"
+        />
+      </div>
+      <div>
+        <label className="label" htmlFor="paymentNote">
+          Hinweis <span className="hint">(optional)</span>
+        </label>
+        <textarea
+          id="paymentNote"
+          name="paymentNote"
+          rows={2}
+          maxLength={500}
+          defaultValue={details.paymentNote ?? ""}
+          className="input"
+          placeholder="z. B. „bar ist mir am liebsten“"
+        />
+      </div>
+      <FormAlert state={state} />
+      <SubmitButton className="btn-primary">Speichern</SubmitButton>
     </form>
   );
 }

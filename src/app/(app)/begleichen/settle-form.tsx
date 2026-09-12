@@ -7,6 +7,10 @@ import { FormAlert, SubmitButton } from "@/components/forms";
 import { CURRENCIES } from "@/lib/money";
 import { toDateInputValue } from "@/lib/format";
 import type { ExpenseFormGroup, PersonOption } from "@/components/expense-form";
+import { PaymentDetailsCard } from "@/components/payment-details";
+import type { PaymentDetails } from "@/lib/payment";
+
+type PayablePerson = PersonOption & Partial<PaymentDetails>;
 
 export function SettleForm({
   currentUser,
@@ -16,7 +20,7 @@ export function SettleForm({
 }: {
   currentUser: PersonOption;
   groups: ExpenseFormGroup[];
-  friends: PersonOption[];
+  friends: PayablePerson[];
   defaults: { groupId: string; fromUserId: string; toUserId: string; amount: string; currency: string };
 }) {
   const [state, formAction] = useActionState(settleUpAction, null);
@@ -25,7 +29,7 @@ export function SettleForm({
     groups.find((g) => g.id === defaults.groupId)?.currency ?? defaults.currency,
   );
 
-  const people = useMemo<PersonOption[]>(() => {
+  const people = useMemo<PayablePerson[]>(() => {
     const group = groups.find((g) => g.id === groupId);
     if (group) return group.members;
     return [currentUser, ...friends.filter((f) => f.id !== currentUser.id)];
@@ -33,6 +37,7 @@ export function SettleForm({
 
   const [fromUserId, setFromUserId] = useState(defaults.fromUserId || currentUser.id);
   const [toUserId, setToUserId] = useState(defaults.toUserId);
+  const recipient = people.find((person) => person.id === toUserId);
 
   return (
     <form action={formAction} className="card space-y-4 p-5">
@@ -144,6 +149,18 @@ export function SettleForm({
         </label>
         <input id="date" name="date" type="date" defaultValue={toDateInputValue(new Date())} className="input" />
       </div>
+
+      {recipient && fromUserId === currentUser.id && (
+        <PaymentDetailsCard
+          name={recipient.name}
+          details={{
+            iban: recipient.iban ?? null,
+            weroContact: recipient.weroContact ?? null,
+            paypalEmail: recipient.paypalEmail ?? null,
+            paymentNote: recipient.paymentNote ?? null,
+          }}
+        />
+      )}
 
       <div>
         <label className="label" htmlFor="notes">
