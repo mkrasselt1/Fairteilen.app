@@ -71,6 +71,42 @@ npm run app:android   # öffnet Android Studio
 In Xcode bzw. Android Studio wie gewohnt signieren und hochladen. Bei jeder Änderung an
 `capacitor.config.ts` danach wieder `npm run app:sync`.
 
+### Anmeldung in der App – hier ist Vorsicht nötig
+
+| Weg | In der App-Hülle |
+|---|---|
+| E-Mail und Passwort | funktioniert unverändert |
+| **Mit Apple anmelden** | funktioniert nur, wenn `appleid.apple.com` in `allowNavigation` steht |
+| **Mit Google anmelden** | **funktioniert nicht** – siehe unten |
+
+Zwei voneinander unabhängige Gründe:
+
+1. `capacitor.config.ts` erlaubt bewusst nur die eigene Adresse. Alles andere öffnet der
+   Systembrowser – der Anmeldevorgang liefe dort zu Ende, und das Sitzungs-Cookie landete im
+   Browser statt in der App. Die App bliebe abgemeldet.
+2. Nimmt man `accounts.google.com` in `allowNavigation` auf, lehnt **Google** die Anmeldung ab:
+   Eingebettete Browser sind seit 2021 gesperrt (`disallowed_useragent`). Das lässt sich von
+   unserer Seite nicht umgehen.
+
+Apple ist an dieser Stelle großzügiger, prüft die App aber lieber mit der nativen Schaltfläche.
+
+**Damit Google und Apple auch in der App funktionieren**, braucht es native Anmeldung statt des
+Umwegs über den Browser:
+
+1. Plugin einbinden, etwa `@capacitor/google-auth` bzw. `@capacitor-community/apple-sign-in`.
+   Dabei entstehen **eigene Client-IDs** für iOS und Android – die Web-Client-ID gilt dort nicht.
+2. Das Plugin liefert ein ID-Token. Dieses muss an den Server gehen, der es prüft und daraus eine
+   Sitzung erzeugt. Die Prüfung selbst ist bereits vorhanden (`verifyIdToken` in
+   [`src/lib/oauth.ts`](../src/lib/oauth.ts) mit Signatur, Aussteller, Empfänger, Laufzeit und
+   Nonce) – es fehlen nur zwei Dinge:
+   - ein Endpunkt, der ein solches Token entgegennimmt,
+   - die zusätzlichen Client-IDs als gültige Empfänger (`aud`), denn die native Kennung
+     unterscheidet sich von der Web-Kennung.
+
+Solange das nicht eingebaut ist: In der App die Anbieter-Schaltflächen ausblenden und auf
+E-Mail und Passwort setzen. Wer sich im Web über Google angemeldet hat, kann sich unter
+*Konto* → *Passwort setzen* eines vergeben und sich damit auch in der App anmelden.
+
 ### Wichtig für die Store-Prüfung
 
 - **Apple lehnt reine Webseiten-Hüllen ab** (Richtlinie 4.2, „minimal functionality“). Die

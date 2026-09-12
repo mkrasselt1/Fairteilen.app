@@ -24,6 +24,10 @@ const config: CapacitorConfig = {
     cleartext: serverUrl.startsWith("http://"),
     // Nur die eigene Instanz darf in der App geöffnet werden; alles andere
     // landet im Systembrowser.
+    //
+    // Achtung: Damit funktioniert die Anmeldung über Google und Apple in der App
+    // NICHT – Google sperrt eingebettete Browser ohnehin. Dafür braucht es native
+    // Anmeldung; der Abschnitt „Anmeldung in der App“ in docs/apps.md erklärt es.
     allowNavigation: [new URL(serverUrl).host],
   },
   ios: {
