@@ -77,7 +77,7 @@ await page2.fill("#password", "supergeheim2");
 await page2.getByRole("button", { name: "Konto erstellen" }).click();
 await page2.waitForURL(`${BASE}/uebersicht`, { timeout: 15000 });
 await page2.goto(BASE + new URL(invite).pathname);
-await page2.getByRole("button", { name: "Gruppe beitreten" }).click();
+await page2.getByRole("button", { name: "Als neue Person beitreten" }).click();
 await page2.waitForURL(/\/gruppen\//, { timeout: 15000 });
 check("Beitritt über Einladungslink", page2.url().includes("/gruppen/"));
 
