@@ -111,6 +111,92 @@ export async function getFriendsWithBalances(userId: string) {
     });
 }
 
+export type SettlementEntry = {
+  person: UserRef;
+  /** Nettobetrag je Währung; positiv = du bekommst. */
+  totals: PersonBalance[];
+  /** Woraus er sich zusammensetzt – für die Nachvollziehbarkeit. */
+  sources: { groupId: string | null; groupName: string; currency: string; amountCents: number }[];
+};
+
+/**
+ * Alle offenen Beträge über sämtliche Gruppen hinweg, je Person zusammengefasst.
+ *
+ * Bewusst nicht über Dritte hinweg vereinfacht: Eine Überweisung an jemanden,
+ * mit dem man nie etwas geteilt hat, wäre verwirrend – und würde Salden von
+ * Leuten offenlegen, die nichts miteinander zu tun haben. Innerhalb einer Gruppe
+ * bleibt die Vereinfachung erhalten.
+ */
+export async function getSettlementOverview(userId: string): Promise<SettlementEntry[]> {
+  const expenses = await prisma.expense.findMany({
+    where: { deletedAt: null, shares: { some: { userId } } },
+    select: {
+      currency: true,
+      groupId: true,
+      group: { select: { name: true } },
+      shares: { select: { userId: true, paidCents: true, oweCents: true } },
+    },
+  });
+
+  // Nach Gruppe getrennt rechnen, damit die Herkunft sichtbar bleibt.
+  const byGroup = new Map<string, { name: string; expenses: typeof expenses }>();
+  for (const expense of expenses) {
+    const key = expense.groupId ?? "";
+    let bucket = byGroup.get(key);
+    if (!bucket) byGroup.set(key, (bucket = { name: expense.group?.name ?? "Ohne Gruppe", expenses: [] }));
+    bucket.expenses.push(expense);
+  }
+
+  const perPerson = new Map<string, SettlementEntry>();
+  const people = new Map<string, UserRef>();
+
+  const userIds = new Set<string>();
+  for (const expense of expenses) for (const share of expense.shares) userIds.add(share.userId);
+  userIds.delete(userId);
+  if (userIds.size > 0) {
+    for (const person of await prisma.user.findMany({ where: { id: { in: [...userIds] } }, select: userSelect })) {
+      people.set(person.id, person);
+    }
+  }
+
+  for (const [groupId, bucket] of byGroup) {
+    for (const debt of pairwiseDebts(bucket.expenses)) {
+      const other = debt.fromUserId === userId ? debt.toUserId : debt.toUserId === userId ? debt.fromUserId : null;
+      if (!other) continue;
+      const amount = debt.toUserId === userId ? debt.amountCents : -debt.amountCents;
+
+      const person = people.get(other);
+      if (!person) continue;
+
+      let entry = perPerson.get(other);
+      if (!entry) perPerson.set(other, (entry = { person, totals: [], sources: [] }));
+      entry.sources.push({
+        groupId: groupId || null,
+        groupName: bucket.name,
+        currency: debt.currency,
+        amountCents: amount,
+      });
+    }
+  }
+
+  for (const entry of perPerson.values()) {
+    const totals = new Map<string, number>();
+    for (const source of entry.sources) {
+      totals.set(source.currency, (totals.get(source.currency) ?? 0) + source.amountCents);
+    }
+    entry.totals = [...totals.entries()]
+      .filter(([, value]) => value !== 0)
+      .map(([currency, amountCents]) => ({ currency, amountCents }));
+  }
+
+  return [...perPerson.values()]
+    .filter((entry) => entry.totals.length > 0)
+    .sort((a, b) => {
+      const sum = (entry: SettlementEntry) => entry.totals.reduce((acc, t) => acc + Math.abs(t.amountCents), 0);
+      return sum(b) - sum(a) || a.person.name.localeCompare(b.person.name);
+    });
+}
+
 export async function getUserGroups(userId: string, options: { archived?: boolean } = {}) {
   const memberships = await prisma.groupMember.findMany({
     where: {

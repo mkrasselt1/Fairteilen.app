@@ -47,8 +47,8 @@ export default async function OverviewPage() {
             <Link href="/ausgaben/neu" className="btn-primary">
               Ausgabe hinzufügen
             </Link>
-            <Link href="/begleichen" className="btn-secondary">
-              Begleichen
+            <Link href="/ausgleich" className="btn-secondary">
+              Ausgleich
             </Link>
           </div>
         </div>
