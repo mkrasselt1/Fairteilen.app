@@ -27,6 +27,7 @@ export const CATEGORIES: Category[] = [
   { id: "pets", label: "Haustiere", icon: "🐾", group: "Sonstiges" },
   { id: "childcare", label: "Kinder", icon: "🧸", group: "Sonstiges" },
   { id: "payment", label: "Zahlung", icon: "💸", group: "Sonstiges" },
+  { id: "carryover", label: "Übertrag", icon: "↪️", group: "Sonstiges" },
 ];
 
 export function categoryOf(id: string): Category {

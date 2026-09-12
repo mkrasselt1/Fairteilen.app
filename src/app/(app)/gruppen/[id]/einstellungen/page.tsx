@@ -8,7 +8,14 @@ import { formatMoney } from "@/lib/money";
 import { Avatar } from "@/components/ui";
 import { CopyButton, ConfirmForm } from "@/components/forms";
 import { deleteGroupAction, leaveGroupAction } from "@/actions/groups";
-import { GroupSettingsForm, AddMemberForm, AddGuestForm, RegenerateInviteForm, ArchiveForm } from "./forms";
+import {
+  GroupSettingsForm,
+  AddMemberForm,
+  AddGuestForm,
+  RegenerateInviteForm,
+  ArchiveForm,
+  CarryOverForm,
+} from "./forms";
 
 export const metadata: Metadata = { title: "Gruppeneinstellungen" };
 export const dynamic = "force-dynamic";
@@ -125,6 +132,16 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
           <AddMemberForm groupId={group.id} />
           <AddGuestForm groupId={group.id} />
         </div>
+      </section>
+
+      <section className="card p-5">
+        <h2 className="mb-1 font-semibold">Fortsetzen</h2>
+        <p className="hint mb-4">
+          Für dieselben Leute weitermachen, ohne alles Alte mitzuschleppen: Die offenen Beträge
+          werden hier glattgestellt und erscheinen in der neuen Gruppe als Übertrag. Niemand verliert
+          dadurch einen Anspruch, und beide Abrechnungen bleiben für sich nachvollziehbar.
+        </p>
+        <CarryOverForm groupId={group.id} groupName={group.name} />
       </section>
 
       <section className="card p-5">

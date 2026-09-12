@@ -311,3 +311,127 @@ export async function claimGuestAction(_prev: ActionState, formData: FormData): 
   revalidatePath("/uebersicht");
   redirect(`/gruppen/${group.id}`);
 }
+
+/**
+ * Abrechnung abschließen und offene Beträge in eine neue Gruppe übertragen.
+ *
+ * In der alten Gruppe wird eine Buchung angelegt, die alle Salden auf null
+ * bringt; in der neuen dieselbe Buchung spiegelbildlich. Dadurch bleibt jede
+ * Abrechnung für sich nachvollziehbar, und niemand verliert einen Anspruch.
+ */
+export async function carryOverGroupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const archiveOld = formData.get("archiveOld") !== null;
+
+  const group = await prisma.group.findFirst({
+    where: { id: groupId, members: { some: { userId: user.id } } },
+    include: { members: { select: { userId: true, role: true } } },
+  });
+  if (!group) return { error: "Du bist kein Mitglied dieser Gruppe." };
+  if (name.length < 2) return { error: "Bitte gib der neuen Gruppe einen Namen." };
+  if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
+
+  const expenses = await prisma.expense.findMany({
+    where: { groupId, deletedAt: null },
+    select: { currency: true, shares: { select: { userId: true, paidCents: true, oweCents: true } } },
+  });
+
+  // Saldo je Währung und Person.
+  const perCurrency = new Map<string, Map<string, number>>();
+  for (const expense of expenses) {
+    let balances = perCurrency.get(expense.currency);
+    if (!balances) perCurrency.set(expense.currency, (balances = new Map()));
+    for (const share of expense.shares) {
+      balances.set(share.userId, (balances.get(share.userId) ?? 0) + share.paidCents - share.oweCents);
+    }
+  }
+  for (const [currency, balances] of perCurrency) {
+    for (const [userId, value] of balances) if (value === 0) balances.delete(userId);
+    if (balances.size === 0) perCurrency.delete(currency);
+  }
+
+  const created = await prisma.group.create({
+    data: {
+      name,
+      type: group.type,
+      currency: group.currency,
+      simplifyDebts: group.simplifyDebts,
+      inviteToken: newInviteToken(),
+      createdById: user.id,
+      members: {
+        create: group.members.map((member) => ({
+          userId: member.userId,
+          role: member.userId === user.id ? "owner" : member.role,
+        })),
+      },
+    },
+  });
+
+  for (const [currency, balances] of perCurrency) {
+    const total = [...balances.values()].filter((value) => value > 0).reduce((a, b) => a + b, 0);
+    if (total === 0) continue;
+
+    // Alte Gruppe glattstellen: Wer im Minus steht, zahlt ein; wer im Plus steht, bekommt.
+    await prisma.expense.create({
+      data: {
+        groupId,
+        description: `Übertrag nach „${name}“`,
+        amountCents: total,
+        currency,
+        category: "carryover",
+        splitType: "exact",
+        createdById: user.id,
+        shares: {
+          create: [...balances.entries()].map(([userId, value]) => ({
+            userId,
+            paidCents: value < 0 ? -value : 0,
+            oweCents: value > 0 ? value : 0,
+          })),
+        },
+      },
+    });
+
+    // Neue Gruppe: derselbe Stand, nur spiegelbildlich.
+    await prisma.expense.create({
+      data: {
+        groupId: created.id,
+        description: `Übertrag aus „${group.name}“`,
+        amountCents: total,
+        currency,
+        category: "carryover",
+        splitType: "exact",
+        createdById: user.id,
+        shares: {
+          create: [...balances.entries()].map(([userId, value]) => ({
+            userId,
+            paidCents: value > 0 ? value : 0,
+            oweCents: value < 0 ? -value : 0,
+          })),
+        },
+      },
+    });
+  }
+
+  if (archiveOld) {
+    await prisma.group.update({ where: { id: groupId }, data: { archivedAt: new Date() } });
+  }
+
+  await logActivity({
+    type: "group_carried_over",
+    actorId: user.id,
+    groupId,
+    payload: { name: group.name, target: name, currencies: perCurrency.size },
+  });
+  await logActivity({
+    type: "group_created",
+    actorId: user.id,
+    groupId: created.id,
+    payload: { name },
+  });
+
+  revalidatePath("/uebersicht");
+  revalidatePath("/gruppen");
+  redirect(`/gruppen/${created.id}`);
+}

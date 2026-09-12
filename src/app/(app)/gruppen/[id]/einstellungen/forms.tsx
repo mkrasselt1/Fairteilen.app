@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   addGuestAction,
+  carryOverGroupAction,
   addMemberAction,
   regenerateInviteAction,
   setGroupArchivedAction,
@@ -150,6 +151,44 @@ export function AddGuestForm({ groupId }: { groupId: string }) {
         und können später von einem echten Konto übernommen werden.
       </p>
       <FormAlert state={state} />
+    </form>
+  );
+}
+
+export function CarryOverForm({ groupId, groupName }: { groupId: string; groupName: string }) {
+  const [state, formAction] = useActionState(carryOverGroupAction, null);
+  return (
+    <form action={formAction} className="space-y-3">
+      <input type="hidden" name="groupId" value={groupId} />
+      <div>
+        <label className="label" htmlFor="carry-name">
+          Name der neuen Gruppe
+        </label>
+        <input
+          id="carry-name"
+          name="name"
+          required
+          maxLength={80}
+          className="input"
+          defaultValue={`${groupName} (Fortsetzung)`}
+        />
+      </div>
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          name="archiveOld"
+          defaultChecked
+          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
+        />
+        <span>
+          <span className="font-medium">Diese Gruppe danach archivieren</span>
+          <span className="hint block">Sie bleibt vollständig erhalten, steht aber nicht mehr in der Liste.</span>
+        </span>
+      </label>
+      <FormAlert state={state} />
+      <SubmitButton className="btn-secondary" pendingLabel="Wird übertragen …">
+        Fortsetzung anlegen
+      </SubmitButton>
     </form>
   );
 }
