@@ -20,6 +20,26 @@ if (result.status === 0) process.exit(0);
 
 const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
 
+// Häufigster Stolperstein auf gehosteten Umgebungen: Die Datenbankadresse ist
+// nirgends hinterlegt. Prisma meldet das nur als Schema-Validierungsfehler.
+if (/Environment variable not found: DATABASE_URL/i.test(output)) {
+  console.log("");
+  console.log("Die Datenbankadresse fehlt: DATABASE_URL ist nicht gesetzt.");
+  console.log("");
+  console.log("Lege im Anwendungsstamm eine Datei .env an – neben package.json:");
+  console.log("");
+  console.log('    DATABASE_URL="mysql://benutzer:passwort@localhost:3306/fairteilen"');
+  console.log('    AUTH_SECRET="langer-zufallswert"');
+  console.log('    APP_URL="https://deine-domain"');
+  console.log("");
+  console.log("Umgebungsvariablen, die nur in der Oberfläche des Hostings stehen, erreichen");
+  console.log("diesen Befehl je nach Version nicht – die Datei tut es immer.");
+  console.log("Enthält das Passwort @ : / oder #, müssen diese Zeichen kodiert werden");
+  console.log("(@ wird zu %40, # zu %23).");
+  console.log("");
+  process.exit(1);
+}
+
 if (!output.includes("data loss")) {
   // Ein anderer Fehler – unverändert weiterreichen.
   process.stderr.write(result.stderr ?? "");

@@ -29,6 +29,17 @@ if [ ! -f package.json ]; then
   exit 1
 fi
 
+# Früh warnen statt erst nach dem Bauen: Ohne Datenbankadresse scheitert später
+# alles, und in der Oberfläche hinterlegte Variablen erreichen diesen Aufruf
+# je nach Hosting nicht.
+if [ ! -f .env ] && [ -z "$DATABASE_URL" ]; then
+  echo ""
+  echo "Hinweis: Es gibt keine Datei .env und DATABASE_URL ist nicht gesetzt."
+  echo "         Der Schritt zur Datenbank wird deshalb voraussichtlich scheitern."
+  echo "         Datei .env neben package.json anlegen, siehe docs/plesk.md."
+  echo ""
+fi
+
 # --- 2. Version der C-Bibliothek bestimmen -----------------------------------
 system_glibc=$( (getconf GNU_LIBC_VERSION 2>/dev/null || ldd --version 2>/dev/null | head -1) |
   grep -o '[0-9][0-9]*\.[0-9][0-9]*' | tail -1 )

@@ -71,7 +71,7 @@ Diese Werte werden gebraucht:
 | `UPLOAD_DIR` | `/var/www/vhosts/fairteilen.app/private/belege` |
 | `NODE_ENV` | `production` |
 
-### Weg A: Datei `.env` im Anwendungsstamm — empfohlen
+### Weg A: Datei `.env` im Anwendungsstamm — empfohlen, praktisch notwendig
 
 Eine Datei `/httpdocs/.env` anlegen (Plesk → *Dateien*, oder per SSH `nano /httpdocs/.env`):
 
@@ -206,6 +206,7 @@ Die häufigsten Ursachen, in dieser Reihenfolge:
 | `Table 'fairteilen.User' doesn't exist` | Die Tabellen wurden nicht angelegt | Skript `db:push` ausführen |
 | „Die Datenbank konnte nicht automatisch angeglichen werden“ | Eine neue eindeutige Spalte kam hinzu | Einmalig Skript `db:push:force` ausführen, danach `setup` |
 | `Access denied for user` / `Unknown database` | `DATABASE_URL` stimmt nicht | Zugangsdaten prüfen, Sonderzeichen prozentkodieren |
+| `Environment variable not found: DATABASE_URL` (P1012) | Die Datenbankadresse erreicht den Befehl nicht | Datei `.env` im Anwendungsstamm anlegen – siehe Abschnitt 4, Weg A. In der Plesk-Oberfläche hinterlegte Variablen kommen dort je nach Version nicht an |
 | `Environment variable not found: DATABASE_URL` | Die Variable ist weder in `.env` noch in Plesk hinterlegt | siehe Abschnitt 4 |
 | `Error validating datasource db: the URL must start with mysql://` | Es ist noch ein anderer Provider gesetzt | `npm run use:mysql`, dann `npm run db:push` |
 | `The engine-mode of the Prisma Client` / Fehler beim Start | Node-Version zu alt | Node 20 oder 22 wählen und neu starten |
