@@ -27,8 +27,15 @@ ALTER DATABASE fairteilen CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ## 2. Dateien auf den Server bringen
 
-Über Plesk → *Git* (Branch `claude/fairteilen-app` bzw. später `main`) oder per SFTP
-nach `/httpdocs`. Nach jedem Update gilt: `npm install` → `npm run build` → *App neu starten*.
+Über Plesk → *Git* oder per SFTP nach `/httpdocs`.
+
+> **Den richtigen Branch eintragen.** In Plesk unter *Git* steht der verfolgte Branch. Zeigt er auf
+> einen Branch, den es auf GitHub nicht mehr gibt, holt Plesk stillschweigend nichts mehr – die
+> Seite bleibt dann auf einem alten Stand stehen, ohne dass ein Fehler erscheint. Aktuell ist
+> `claude/fairteilen-app` (später `main`).
+
+Nach jedem Update gilt: **NPM install** → Skript **`setup`** → **App neu starten**. Ohne den
+Neustart liefert Passenger weiter den alten Build aus.
 
 ---
 
@@ -197,6 +204,7 @@ Die häufigsten Ursachen, in dieser Reihenfolge:
 | `Cannot find module 'typescript'` / `tailwindcss` | Die Entwicklungsabhängigkeiten fehlen | Prüfen, ob `.npmrc` mit `include=dev` auf dem Server liegt, dann *NPM install* wiederholen |
 | `@prisma/client did not initialize yet` | `prisma generate` fehlt | Skript `db:generate` ausführen |
 | `Table 'fairteilen.User' doesn't exist` | Die Tabellen wurden nicht angelegt | Skript `db:push` ausführen |
+| „Die Datenbank konnte nicht automatisch angeglichen werden“ | Eine neue eindeutige Spalte kam hinzu | Einmalig Skript `db:push:force` ausführen, danach `setup` |
 | `Access denied for user` / `Unknown database` | `DATABASE_URL` stimmt nicht | Zugangsdaten prüfen, Sonderzeichen prozentkodieren |
 | `Environment variable not found: DATABASE_URL` | Die Variable ist weder in `.env` noch in Plesk hinterlegt | siehe Abschnitt 4 |
 | `Error validating datasource db: the URL must start with mysql://` | Es ist noch ein anderer Provider gesetzt | `npm run use:mysql`, dann `npm run db:push` |
@@ -268,6 +276,19 @@ Prüfskripts passen – entscheidend ist, dass alles **ein** Befehl bleibt:
 ```sh
 cd /var/www/vhosts/fairteilen.app/httpdocs && export PATH=/opt/plesk/node/22/bin:$PATH && node -v && npm install && npm run setup
 ```
+
+### Die Startseite leitet noch zur Anmeldung
+
+Dann läuft ein alter Stand. Der Reihe nach prüfen:
+
+1. **Branch.** Plesk → *Git*: Verfolgt die Bereitstellung wirklich `claude/fairteilen-app`?
+   Ein gelöschter Branch führt dazu, dass gar nichts mehr ankommt.
+2. **Gebaut?** Nach dem Holen muss Skript **`setup`** laufen – ohne neuen Build liefert Next
+   weiterhin die alten Seiten aus.
+3. **Neu gestartet?** Zum Schluss **App neu starten**.
+
+Zum Gegenprüfen: `git log --oneline -1` im Anwendungsstamm zeigt, welcher Stand tatsächlich
+auf dem Server liegt.
 
 ### Seite lädt, aber ohne Gestaltung
 Der Dokumentenstamm zeigt auf ein falsches Verzeichnis – er muss `/httpdocs/public` sein.
