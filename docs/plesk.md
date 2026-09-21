@@ -266,6 +266,23 @@ Systemversion, den Suchpfad der Shell und für jedes gefundene `node`, `npm` und
 C-Bibliothek es braucht. Der Eintrag mit einer höheren Zahl als die Systemversion ganz oben ist
 die Ursache.
 
+#### Die C-Bibliothek lässt sich nicht nachrüsten
+
+Naheliegend wäre, einfach die fehlende Fassung nachzuinstallieren. Das geht nicht: glibc ist keine
+gewöhnliche Bibliothek, sondern Bestandteil des Betriebssystems – jedes Programm auf dem Server
+hängt daran, einschließlich Shell und SSH. Ein erzwungenes Upgrade auf einer Distribution, die es
+nicht vorsieht, macht das System unbrauchbar, oft ohne Weg zurück.
+
+Der richtige Weg ist umgekehrt: **ein Node verwenden, das zur vorhandenen glibc passt.**
+
+- In Plesk unter *Node.js* eine ältere Version wählen (20 oder 18).
+- Oder die offiziellen Linux-Pakete von nodejs.org verwenden – sie sind gegen glibc 2.28 gebaut
+  und laufen damit auf allen gängigen Servern.
+- Dauerhaft sauber wird es erst mit einem Distributions-Upgrade des Servers.
+
+Fairteilen selbst stellt keine hohen Ansprüche: Die höchste geforderte Fassung über alle
+Abhängigkeiten hinweg ist **glibc 2.28** aus dem Jahr 2018.
+
 #### Beheben
 
 **Weg 0 – meistens schon die Lösung: alles in eine Zeile.**

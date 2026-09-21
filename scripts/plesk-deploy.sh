@@ -26,11 +26,16 @@ system_glibc=$( (getconf GNU_LIBC_VERSION 2>/dev/null || ldd --version 2>/dev/nu
   grep -o '[0-9][0-9]*\.[0-9][0-9]*' | tail -1 )
 echo "C-Bibliothek:       glibc ${system_glibc:-unbekannt}"
 
+# Welche glibc verlangt diese Datei?
+benoetigt() {
+  grep -ao 'GLIBC_[0-9][0-9]*\.[0-9][0-9]*' "$1" 2>/dev/null |
+    sed 's/GLIBC_//' | sort -u -V | tail -1
+}
+
 # Verlangt die Datei eine neuere glibc als vorhanden? 0 = brauchbar
 vertraeglich() {
   [ -n "$system_glibc" ] || return 0
-  needed=$(grep -ao 'GLIBC_[0-9][0-9]*\.[0-9][0-9]*' "$1" 2>/dev/null |
-    sed 's/GLIBC_//' | sort -u -V | tail -1)
+  needed=$(benoetigt "$1")
   [ -n "$needed" ] || return 0
   [ "$(printf '%s\n%s\n' "$needed" "$system_glibc" | sort -V | tail -1)" = "$system_glibc" ]
 }
@@ -44,7 +49,10 @@ kandidaten="$kandidaten /usr/local/bin/node /usr/bin/node"
 NODE=""
 for kandidat in $kandidaten; do
   [ -x "$kandidat" ] || continue
-  vertraeglich "$kandidat" || { echo "  übersprungen (glibc zu neu): $kandidat"; continue; }
+  vertraeglich "$kandidat" || {
+    echo "  übersprungen: $kandidat verlangt glibc $(benoetigt "$kandidat"), vorhanden ist $system_glibc"
+    continue
+  }
   version=$("$kandidat" -v 2>/dev/null) || { echo "  übersprungen (startet nicht): $kandidat"; continue; }
   major=$(echo "$version" | sed 's/^v//' | cut -d. -f1)
   [ "$major" -ge 18 ] 2>/dev/null || { echo "  übersprungen (zu alt, $version): $kandidat"; continue; }
@@ -54,8 +62,18 @@ for kandidat in $kandidaten; do
 done
 
 if [ -z "$NODE" ]; then
+  echo "" >&2
   echo "FEHLER: Kein brauchbares Node gefunden." >&2
-  echo "        'sh scripts/pruefe-umgebung.sh' zeigt, was auf dem Server vorhanden ist." >&2
+  echo "" >&2
+  echo "Das System hat glibc ${system_glibc:-unbekannt}. Alle gefundenen Node-Installationen" >&2
+  echo "verlangen eine neuere Fassung oder sind zu alt (nötig ist mindestens Node 18)." >&2
+  echo "" >&2
+  echo "Die C-Bibliothek lässt sich NICHT nachinstallieren – sie gehört zum Betriebssystem." >&2
+  echo "Stattdessen ein passendes Node besorgen, zum Beispiel:" >&2
+  echo "  • in Plesk unter Node.js eine ältere Version wählen (20 oder 18)" >&2
+  echo "  • oder die offiziellen Linux-Pakete von nodejs.org – sie kommen mit glibc 2.28 aus" >&2
+  echo "" >&2
+  echo "'sh scripts/pruefe-umgebung.sh' listet auf, was auf dem Server vorhanden ist." >&2
   exit 1
 fi
 
