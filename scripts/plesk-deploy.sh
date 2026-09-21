@@ -11,9 +11,17 @@
 # wechselt selbst ins richtige Verzeichnis und sucht sich ein passendes Node.
 set -e
 
-# --- 1. Ins Projektverzeichnis wechseln, egal von wo aufgerufen wird ----------
+# --- Ins Projektverzeichnis wechseln, egal von wo aufgerufen wird -------------
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$script_dir/.."
+
+# Plesk zeigt die Ausgabe erfolgreicher Bereitstellungsaktionen oft gar nicht an.
+# Deshalb landet alles zusätzlich in einer Datei, die sich über den Dateimanager
+# lesen lässt. Sie liegt außerhalb des Dokumentenstamms und ist nicht abrufbar.
+log="${DEPLOY_LOG:-$(pwd)/deploy.log}"
+
+haupt() {
+echo "Bereitstellung am $(date '+%d.%m.%Y %H:%M:%S')"
 echo "Projektverzeichnis: $(pwd)"
 
 if [ ! -f package.json ]; then
@@ -100,3 +108,13 @@ echo "→ npm run setup  (Prisma-Client, Tabellen, Build)"
 
 echo ""
 echo "✓ Bereitstellung abgeschlossen. Jetzt in Plesk noch »App neu starten« drücken."
+}
+
+# Erst ins Protokoll schreiben, dann ausgeben – so bleibt der Rückgabewert erhalten
+# und die Datei existiert auch dann, wenn Plesk nichts anzeigt.
+haupt > "$log" 2>&1
+status=$?
+cat "$log"
+echo ""
+echo "Dieses Protokoll steht auch in: $log"
+exit $status

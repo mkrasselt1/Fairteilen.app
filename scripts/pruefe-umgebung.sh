@@ -6,6 +6,8 @@
 # Findet heraus, welches Programm eine zu neue C-Bibliothek verlangt
 # ("GLIBC_2.38 not found").
 
+pruefung() {
+
 echo "=== System ==="
 (ldd --version 2>/dev/null || getconf GNU_LIBC_VERSION 2>/dev/null) | head -1
 [ -r /etc/os-release ] && . /etc/os-release && echo "Betriebssystem: $PRETTY_NAME"
@@ -61,3 +63,12 @@ fi
 echo ""
 echo "Fertig. Ein Eintrag oben mit einer höheren GLIBC-Zahl als die"
 echo "Systemversion ganz oben ist die Ursache der Fehlermeldung."
+}
+
+# Plesk zeigt die Ausgabe erfolgreicher Aktionen oft nicht an – deshalb
+# zusätzlich in eine Datei schreiben, die sich im Dateimanager lesen lässt.
+log="${PRUEF_LOG:-$(pwd)/umgebung.log}"
+pruefung > "$log" 2>&1
+cat "$log"
+echo ""
+echo "Dieses Protokoll steht auch in: $log"

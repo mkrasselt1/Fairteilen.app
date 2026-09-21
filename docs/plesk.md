@@ -260,11 +260,41 @@ sh scripts/pruefe-umgebung.sh   # reine Shell, funktioniert auch ohne lauffähig
 npm run doctor                  # ausführlicher, braucht ein startendes Node
 ```
 
-`scripts/pruefe-umgebung.sh` lässt sich direkt als *Zusätzliche Bereitstellungsaktion* eintragen –
-dann steht das Ergebnis im selben Fenster, in dem sonst der Fehler erscheint. Es zeigt die
+`scripts/pruefe-umgebung.sh` lässt sich direkt als *Zusätzliche Bereitstellungsaktion* eintragen.
+
+> **Plesk zeigt bei Erfolg oft gar keine Ausgabe an.** Beide Skripte schreiben deshalb zusätzlich
+> eine Protokolldatei in den Anwendungsstamm – `umgebung.log` beziehungsweise `deploy.log`. Die
+> lässt sich über Plesk → *Dateien* öffnen, auch wenn im Bereitstellungsfenster nichts steht. Über
+> das Web sind die Dateien nicht erreichbar, weil der Dokumentenstamm auf `public` zeigt. Es zeigt die
 Systemversion, den Suchpfad der Shell und für jedes gefundene `node`, `npm` und `npx`, welche
 C-Bibliothek es braucht. Der Eintrag mit einer höheren Zahl als die Systemversion ganz oben ist
 die Ursache.
+
+#### Welches System läuft überhaupt, und welche glibc hat es?
+
+Die C-Bibliothek gehört zur Distribution – aus der Version des Systems ergibt sich die Version der
+Bibliothek:
+
+| Distribution | glibc |
+|---|---|
+| Ubuntu 20.04 LTS | 2.31 |
+| Ubuntu 22.04 LTS | 2.35 |
+| Ubuntu 24.04 LTS | 2.39 |
+| Debian 11 | 2.31 |
+| Debian 12 | 2.36 |
+
+**Ohne SSH:** Plesk → *Tools & Einstellungen* → *Serverinformationen*. Dort stehen Betriebssystem
+und Version.
+
+**Mit SSH:**
+
+```bash
+cat /etc/os-release | head -2     # Distribution und Version
+ldd --version | head -1           # glibc-Version
+```
+
+Fehlen laut Fehlermeldung `GLIBC_2.36` **und** `GLIBC_2.38`, ist die vorhandene Fassung älter
+als 2.36 – das System ist also höchstens Ubuntu 22.04 oder Debian 11.
 
 #### Die C-Bibliothek lässt sich nicht nachrüsten
 

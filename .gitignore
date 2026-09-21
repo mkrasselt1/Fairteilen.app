@@ -16,3 +16,5 @@ next-env.d.ts
 # Von Capacitor erzeugte Projekte – werden aus capacitor.config.ts neu gebaut
 /ios
 /android
+deploy.log
+umgebung.log
