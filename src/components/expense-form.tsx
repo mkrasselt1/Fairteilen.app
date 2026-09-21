@@ -80,6 +80,8 @@ export function ExpenseForm({
   defaultGroupId,
   defaultFriendId,
   defaultCurrency = "EUR",
+  returnTo,
+  lockGroup = false,
 }: {
   currentUser: PersonOption;
   groups: ExpenseFormGroup[];
@@ -88,6 +90,10 @@ export function ExpenseForm({
   defaultGroupId?: string;
   defaultFriendId?: string;
   defaultCurrency?: string;
+  /** Wohin nach dem Speichern – im Link-Modus zurück auf die gemeinsame Seite. */
+  returnTo?: string;
+  /** Die Gruppe steht fest und lässt sich nicht wechseln. */
+  lockGroup?: boolean;
 }) {
   const [state, formAction] = useActionState(saveExpenseAction, null);
 
@@ -218,6 +224,7 @@ export function ExpenseForm({
   return (
     <form action={formAction} className="space-y-6">
       {initial && <input type="hidden" name="expenseId" value={initial.id} />}
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
       <input type="hidden" name="groupId" value={groupId} />
       <input type="hidden" name="splitType" value={splitType} />
       <input type="hidden" name="payerMode" value={payerMode} />
@@ -277,8 +284,8 @@ export function ExpenseForm({
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
+        <div className={`grid gap-4 ${lockGroup ? "" : "sm:grid-cols-2"}`}>
+          <div className={lockGroup ? "hidden" : ""}>
             <label className="label" htmlFor="groupId-select">
               Gruppe
             </label>
@@ -516,7 +523,7 @@ export function ExpenseForm({
           })}
         </div>
 
-        {groupId === "" && friends.length === 0 && (
+        {groupId === "" && friends.length === 0 && !lockGroup && (
           <p className="hint">
             Du hast noch keine Kontakte.{" "}
             <Link href="/freunde" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">
@@ -599,7 +606,7 @@ export function ExpenseForm({
 
       <div className="flex flex-wrap gap-2">
         <SubmitButton className="btn-primary">{initial ? "Änderungen speichern" : "Ausgabe speichern"}</SubmitButton>
-        <Link href={groupId ? `/gruppen/${groupId}` : "/uebersicht"} className="btn-secondary">
+        <Link href={returnTo ?? (groupId ? `/gruppen/${groupId}` : "/uebersicht")} className="btn-secondary">
           Abbrechen
         </Link>
       </div>

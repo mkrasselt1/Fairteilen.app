@@ -109,6 +109,9 @@ model Group {
   currency      String   @default("EUR")
   simplifyDebts Boolean  @default(true)
   inviteToken   String   @unique
+  /// Ist gesetzt, darf jede Person mit dem Link ohne Konto mitarbeiten.
+  publicToken   String?  @unique
+  /// Bei Gruppen, die allein über einen Link entstanden sind, ist das ein Gast.
   createdById   String
   archivedAt    DateTime?
   createdAt     DateTime @default(now())

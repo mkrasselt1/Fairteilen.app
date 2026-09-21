@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { ActorError, requireExpenseActor, requireGroupActor, type Actor } from "@/lib/actor";
 import { isSupportedCurrency, parseAmountToCents } from "@/lib/money";
 import { CATEGORIES } from "@/lib/categories";
 import { computeShares, SPLIT_TYPES, SplitError, validatePayments, type SplitType } from "@/lib/split";
@@ -12,6 +13,31 @@ import { deleteUpload, prepareUpload, writeUpload, UploadError } from "@/lib/upl
 import type { ActionState } from "@/lib/action-state";
 
 const RECURRENCES = ["none", "daily", "weekly", "monthly", "yearly"] as const;
+
+/** Nur Pfade innerhalb der Anwendung sind als Rücksprungziel zulässig. */
+function safeReturnTo(formData: FormData): string | null {
+  const value = String(formData.get("returnTo") ?? "").trim();
+  return value.startsWith("/") && !value.startsWith("//") ? value : null;
+}
+
+async function accountActor(): Promise<Actor> {
+  const account = await getCurrentUser();
+  if (!account) throw new ActorError("Dafür musst du angemeldet sein.");
+  return { userId: account.id, name: account.name, viaLink: false, account };
+}
+
+/**
+ * Wer das Formular abschickt: ein angemeldetes Konto oder jemand, der über den
+ * geteilten Link an dieser Gruppe mitarbeitet.
+ */
+async function actorForForm(formData: FormData): Promise<Actor> {
+  const expenseId = String(formData.get("expenseId") ?? "").trim();
+  if (expenseId) return (await requireExpenseActor(expenseId)).actor;
+
+  const groupId = String(formData.get("groupId") ?? "").trim();
+  if (groupId) return requireGroupActor(groupId);
+  return accountActor();
+}
 type Recurrence = (typeof RECURRENCES)[number];
 
 type ParsedForm = {
@@ -158,7 +184,14 @@ function nextDate(date: Date, recurrence: Recurrence): Date | null {
 }
 
 export async function saveExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  let user: Actor;
+  try {
+    user = await actorForForm(formData);
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
+
   let parsed: ParsedForm;
   let shares: { userId: string; paidCents: number; oweCents: number }[];
   let preparedAttachments: Awaited<ReturnType<typeof prepareAttachments>> = [];
@@ -180,7 +213,7 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
     }
     shares = [...byUser.values()];
 
-    await assertAccess(user.id, parsed.groupId, shares.map((s) => s.userId));
+    await assertAccess(user.userId, parsed.groupId, shares.map((s) => s.userId));
   } catch (error) {
     if (error instanceof SplitError || error instanceof UploadError) return { error: error.message };
     throw error;
@@ -206,7 +239,7 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
       where: {
         id: expenseId,
         deletedAt: null,
-        OR: [{ shares: { some: { userId: user.id } } }, { group: { members: { some: { userId: user.id } } } }],
+        OR: [{ shares: { some: { userId: user.userId } } }, { group: { members: { some: { userId: user.userId } } } }],
       },
     });
     if (!existing) return { error: "Diese Ausgabe kann nicht bearbeitet werden." };
@@ -218,19 +251,19 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
     ]);
     await logActivity({
       type: "expense_updated",
-      actorId: user.id,
+      actorId: user.userId,
       groupId: parsed.groupId,
       expenseId,
       payload: { description: parsed.description, amountCents: parsed.amountCents, currency: parsed.currency },
     });
   } else {
     const created = await prisma.expense.create({
-      data: { ...data, createdById: user.id, shares: { create: shares } },
+      data: { ...data, createdById: user.userId, shares: { create: shares } },
     });
     expenseId = created.id;
     await logActivity({
       type: "expense_added",
-      actorId: user.id,
+      actorId: user.userId,
       groupId: parsed.groupId,
       expenseId,
       payload: { description: parsed.description, amountCents: parsed.amountCents, currency: parsed.currency },
@@ -240,30 +273,36 @@ export async function saveExpenseAction(_prev: ActionState, formData: FormData):
   await ensureFriendships(shares.map((s) => s.userId));
 
   // Beim Anlegen und Bearbeiten mitgeschickte Belege übernehmen.
-  if (preparedAttachments.length > 0) await writeAttachments(expenseId, user.id, preparedAttachments);
+  if (preparedAttachments.length > 0) await writeAttachments(expenseId, user.userId, preparedAttachments);
 
   revalidatePath("/uebersicht");
   revalidatePath("/aktivitaet");
+  const back = safeReturnTo(formData);
+  if (back) {
+    revalidatePath(back);
+    redirect(back);
+  }
   if (parsed.groupId) revalidatePath(`/gruppen/${parsed.groupId}`);
   redirect(parsed.groupId ? `/gruppen/${parsed.groupId}` : `/ausgaben/${expenseId}`);
 }
 
 export async function deleteExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
   const expenseId = String(formData.get("expenseId") ?? "");
-  const expense = await prisma.expense.findFirst({
-    where: {
-      id: expenseId,
-      deletedAt: null,
-      OR: [{ shares: { some: { userId: user.id } } }, { group: { members: { some: { userId: user.id } } } }],
-    },
-  });
+  let user: Actor;
+  try {
+    user = (await requireExpenseActor(expenseId)).actor;
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
+
+  const expense = await prisma.expense.findFirst({ where: { id: expenseId, deletedAt: null } });
   if (!expense) return { error: "Diese Ausgabe kann nicht gelöscht werden." };
 
   await prisma.expense.update({ where: { id: expenseId }, data: { deletedAt: new Date() } });
   await logActivity({
     type: expense.isPayment ? "payment_deleted" : "expense_deleted",
-    actorId: user.id,
+    actorId: user.userId,
     groupId: expense.groupId,
     expenseId,
     payload: { description: expense.description, amountCents: expense.amountCents, currency: expense.currency },
@@ -271,6 +310,11 @@ export async function deleteExpenseAction(_prev: ActionState, formData: FormData
 
   revalidatePath("/uebersicht");
   revalidatePath("/aktivitaet");
+  const back = safeReturnTo(formData);
+  if (back) {
+    revalidatePath(back);
+    redirect(back);
+  }
   if (expense.groupId) {
     revalidatePath(`/gruppen/${expense.groupId}`);
     redirect(`/gruppen/${expense.groupId}`);
@@ -279,15 +323,15 @@ export async function deleteExpenseAction(_prev: ActionState, formData: FormData
 }
 
 export async function restoreExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
   const expenseId = String(formData.get("expenseId") ?? "");
-  const expense = await prisma.expense.findFirst({
-    where: {
-      id: expenseId,
-      NOT: { deletedAt: null },
-      OR: [{ shares: { some: { userId: user.id } } }, { group: { members: { some: { userId: user.id } } } }],
-    },
-  });
+  try {
+    await requireExpenseActor(expenseId);
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
+
+  const expense = await prisma.expense.findFirst({ where: { id: expenseId, NOT: { deletedAt: null } } });
   if (!expense) return { error: "Diese Ausgabe kann nicht wiederhergestellt werden." };
 
   await prisma.expense.update({ where: { id: expenseId }, data: { deletedAt: null } });
@@ -298,10 +342,18 @@ export async function restoreExpenseAction(_prev: ActionState, formData: FormDat
 
 /** Zahlung erfassen ("Begleichen"). */
 export async function settleUpAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  let user: Actor;
+  try {
+    user = await actorForForm(formData);
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
+
   const fromUserId = String(formData.get("fromUserId") ?? "");
   const toUserId = String(formData.get("toUserId") ?? "");
-  const currency = String(formData.get("currency") ?? user.currency);
+  const account = user.account;
+  const currency = String(formData.get("currency") ?? account?.currency ?? "EUR");
   const groupId = String(formData.get("groupId") ?? "").trim() || null;
   const date = parseDate(String(formData.get("date") ?? ""));
   const notes = String(formData.get("notes") ?? "").trim() || null;
@@ -310,12 +362,12 @@ export async function settleUpAction(_prev: ActionState, formData: FormData): Pr
   if (!fromUserId || !toUserId || fromUserId === toUserId) return { error: "Bitte wähle zwei verschiedene Personen." };
   if (amountCents === null || amountCents <= 0) return { error: "Bitte gib einen gültigen Betrag größer 0 an." };
   if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
-  if (fromUserId !== user.id && toUserId !== user.id && !groupId) {
+  if (fromUserId !== user.userId && toUserId !== user.userId && !groupId) {
     return { error: "Zahlungen ohne Gruppe kannst du nur für dich selbst erfassen." };
   }
 
   try {
-    await assertAccess(user.id, groupId, [fromUserId, toUserId]);
+    await assertAccess(user.userId, groupId, [fromUserId, toUserId]);
   } catch (error) {
     if (error instanceof SplitError) return { error: error.message };
     throw error;
@@ -337,7 +389,7 @@ export async function settleUpAction(_prev: ActionState, formData: FormData): Pr
       notes,
       splitType: "exact",
       isPayment: true,
-      createdById: user.id,
+      createdById: user.userId,
       shares: {
         create: [
           { userId: fromUserId, paidCents: amountCents, oweCents: 0 },
@@ -349,7 +401,7 @@ export async function settleUpAction(_prev: ActionState, formData: FormData): Pr
 
   await logActivity({
     type: "payment_added",
-    actorId: user.id,
+    actorId: user.userId,
     groupId,
     expenseId: expense.id,
     payload: { from: from.name, to: to.name, amountCents, currency },
@@ -357,38 +409,46 @@ export async function settleUpAction(_prev: ActionState, formData: FormData): Pr
 
   revalidatePath("/uebersicht");
   revalidatePath("/aktivitaet");
+  const back = safeReturnTo(formData);
+  if (back) {
+    revalidatePath(back);
+    redirect(back);
+  }
   if (groupId) {
     revalidatePath(`/gruppen/${groupId}`);
     redirect(`/gruppen/${groupId}`);
   }
-  redirect(`/freunde/${fromUserId === user.id ? toUserId : fromUserId}`);
+  redirect(`/freunde/${fromUserId === user.userId ? toUserId : fromUserId}`);
 }
 
 export async function addCommentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
   const expenseId = String(formData.get("expenseId") ?? "");
+  let user: Actor;
+  try {
+    user = (await requireExpenseActor(expenseId)).actor;
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
+
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return { error: "Bitte gib einen Kommentar ein." };
   if (body.length > 4000) return { error: "Der Kommentar darf höchstens 4000 Zeichen lang sein." };
 
-  const expense = await prisma.expense.findFirst({
-    where: {
-      id: expenseId,
-      OR: [{ shares: { some: { userId: user.id } } }, { group: { members: { some: { userId: user.id } } } }],
-    },
-  });
+  const expense = await prisma.expense.findUnique({ where: { id: expenseId } });
   if (!expense) return { error: "Diese Ausgabe wurde nicht gefunden." };
 
-  await prisma.comment.create({ data: { expenseId, userId: user.id, body } });
+  await prisma.comment.create({ data: { expenseId, userId: user.userId, body } });
   await logActivity({
     type: "comment_added",
-    actorId: user.id,
+    actorId: user.userId,
     groupId: expense.groupId,
     expenseId,
     payload: { description: expense.description, body: body.slice(0, 140) },
   });
 
   revalidatePath(`/ausgaben/${expenseId}`);
+  revalidatePath("/gemeinsam", "layout");
   return { success: "" };
 }
 
@@ -465,17 +525,6 @@ export async function materializeRecurringExpenses(userId: string): Promise<numb
 }
 
 
-/** Zugriff auf eine Ausgabe: beteiligt, Gruppenmitglied oder Ersteller. */
-function expenseAccessFilter(userId: string) {
-  return {
-    OR: [
-      { shares: { some: { userId } } },
-      { group: { members: { some: { userId } } } },
-      { createdById: userId },
-    ],
-  };
-}
-
 /**
  * Alle Belege eines Formulars zuerst prüfen und erst dann schreiben: Schlägt eine
  * Datei fehl, wird keine gespeichert. So kann nichts halb ankommen und nichts
@@ -512,11 +561,14 @@ function attachmentsFromForm(formData: FormData): File[] {
 }
 
 export async function addAttachmentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
   const expenseId = String(formData.get("expenseId") ?? "");
-
-  const expense = await prisma.expense.findFirst({ where: { id: expenseId, ...expenseAccessFilter(user.id) } });
-  if (!expense) return { error: "Diese Ausgabe wurde nicht gefunden." };
+  let user: Actor;
+  try {
+    user = (await requireExpenseActor(expenseId)).actor;
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
 
   const files = attachmentsFromForm(formData);
   if (files.length === 0 || files.every((file) => file.size === 0)) {
@@ -531,23 +583,28 @@ export async function addAttachmentAction(_prev: ActionState, formData: FormData
     throw error;
   }
 
-  await writeAttachments(expenseId, user.id, prepared);
+  await writeAttachments(expenseId, user.userId, prepared);
   revalidatePath(`/ausgaben/${expenseId}`);
+  revalidatePath("/gemeinsam", "layout");
   return { success: prepared.length === 1 ? "Beleg hinzugefügt." : `${prepared.length} Belege hinzugefügt.` };
 }
 
 export async function deleteAttachmentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
   const attachmentId = String(formData.get("attachmentId") ?? "");
-
-  const attachment = await prisma.attachment.findFirst({
-    where: { id: attachmentId, expense: expenseAccessFilter(user.id) },
-  });
+  const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
   if (!attachment) return { error: "Dieser Beleg wurde nicht gefunden." };
+
+  try {
+    await requireExpenseActor(attachment.expenseId);
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
 
   await prisma.attachment.delete({ where: { id: attachment.id } });
   await deleteUpload(attachment.storedName);
 
   revalidatePath(`/ausgaben/${attachment.expenseId}`);
+  revalidatePath("/gemeinsam", "layout");
   return { success: "Beleg gelöscht." };
 }

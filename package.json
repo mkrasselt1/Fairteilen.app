@@ -15,6 +15,7 @@
     "test": "node --test --experimental-strip-types --conditions=react-server \"tests/**/*.test.ts\"",
     "test:e2e": "node tests/e2e.mjs",
     "db:push": "prisma db push",
+    "db:push:force": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "node --experimental-strip-types prisma/seed.ts",

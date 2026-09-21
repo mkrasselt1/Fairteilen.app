@@ -24,10 +24,13 @@ export function ExpenseList({
   expenses,
   currentUserId,
   showGroup = false,
+  basePath = "/ausgaben",
 }: {
   expenses: ListExpense[];
   currentUserId: string;
   showGroup?: boolean;
+  /** Im Link-Modus zeigen die Einträge auf die geteilte Abrechnung. */
+  basePath?: string;
 }) {
   const months: { label: string; items: ListExpense[] }[] = [];
   for (const expense of expenses) {
@@ -61,7 +64,7 @@ export function ExpenseList({
               return (
                 <li key={expense.id}>
                   <Link
-                    href={`/ausgaben/${expense.id}`}
+                    href={`${basePath}/${expense.id}`}
                     className="flex items-center gap-3 px-4 py-3 transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   >
                     <span className="w-10 shrink-0 text-center">

@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser, requireUser } from "@/lib/auth";
+import {
+  ActorError,
+  forgetLinkIdentity,
+  rememberLinkIdentity,
+  requireGroupActor,
+  type Actor,
+} from "@/lib/actor";
 import { isSupportedCurrency } from "@/lib/money";
 import { GROUP_TYPES } from "@/lib/categories";
 import { ensureFriendships, logActivity } from "@/lib/social";
@@ -57,15 +64,19 @@ export async function createGroupAction(_prev: ActionState, formData: FormData):
 }
 
 export async function updateGroupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  let user: Actor;
+  try {
+    user = await requireGroupActor(String(formData.get("groupId") ?? ""));
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
   const groupId = String(formData.get("groupId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const type = String(formData.get("type") ?? "other");
   const currency = String(formData.get("currency") ?? "EUR");
   const simplifyDebts = formData.get("simplifyDebts") !== null;
 
-  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
-  if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
   if (name.length < 2) return { error: "Bitte gib der Gruppe einen Namen." };
   if (name.length > 80) return { error: "Der Gruppenname darf höchstens 80 Zeichen lang sein." };
   if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
@@ -87,12 +98,15 @@ export async function regenerateInviteAction(_prev: ActionState, formData: FormD
 }
 
 export async function addMemberAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  let user: Actor;
+  try {
+    user = await requireGroupActor(String(formData.get("groupId") ?? ""));
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
   const groupId = String(formData.get("groupId") ?? "");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-
-  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
-  if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
 
   const invitee = await prisma.user.findUnique({ where: { email } });
   if (!invitee) {
@@ -103,7 +117,7 @@ export async function addMemberAction(_prev: ActionState, formData: FormData): P
   if (already) return { error: "Diese Person ist bereits Mitglied." };
 
   await prisma.groupMember.create({ data: { groupId, userId: invitee.id } });
-  await ensureFriendships([user.id, invitee.id]);
+  await ensureFriendships([user.userId, invitee.id]);
   await logActivity({
     type: "member_joined",
     actorId: invitee.id,
@@ -132,13 +146,21 @@ export async function joinGroupAction(_prev: ActionState, formData: FormData): P
 }
 
 export async function leaveGroupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
   const groupId = String(formData.get("groupId") ?? "");
-  const targetUserId = String(formData.get("userId") ?? user.id);
+  let user: Actor;
+  try {
+    user = await requireGroupActor(groupId);
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
 
-  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
-  if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
-  if (targetUserId !== user.id && membership.role !== "owner") {
+  const targetUserId = String(formData.get("userId") ?? user.userId);
+  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.userId } });
+
+  // In einer geteilten Gruppe ohne Konten gibt es keine Verwaltung – dort darf
+  // jede mitarbeitende Person aufräumen.
+  if (!user.viaLink && targetUserId !== user.userId && membership?.role !== "owner") {
     return { error: "Nur die Gruppenverwaltung kann andere Mitglieder entfernen." };
   }
 
@@ -156,7 +178,7 @@ export async function leaveGroupAction(_prev: ActionState, formData: FormData): 
     select: { name: true, isGuest: true },
   });
   await prisma.groupMember.deleteMany({ where: { groupId, userId: targetUserId } });
-  await logActivity({ type: "member_left", actorId: user.id, groupId, payload: { name: target?.name ?? "" } });
+  await logActivity({ type: "member_left", actorId: user.userId, groupId, payload: { name: target?.name ?? "" } });
 
   // Ein Gast existiert nur innerhalb seiner Gruppen – ohne Gruppe hat er keinen Zweck mehr.
   if (target?.isGuest) {
@@ -164,7 +186,7 @@ export async function leaveGroupAction(_prev: ActionState, formData: FormData): 
     if (remaining === 0) await prisma.user.delete({ where: { id: targetUserId } }).catch(() => undefined);
   }
 
-  if (targetUserId === user.id) {
+  if (targetUserId === user.userId) {
     revalidatePath("/uebersicht");
     redirect("/");
   }
@@ -173,12 +195,15 @@ export async function leaveGroupAction(_prev: ActionState, formData: FormData): 
 }
 
 export async function setGroupArchivedAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  let user: Actor;
+  try {
+    user = await requireGroupActor(String(formData.get("groupId") ?? ""));
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
   const groupId = String(formData.get("groupId") ?? "");
   const archived = String(formData.get("archived") ?? "") === "true";
-
-  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
-  if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
 
   const group = await prisma.group.update({
     where: { id: groupId },
@@ -187,7 +212,7 @@ export async function setGroupArchivedAction(_prev: ActionState, formData: FormD
   });
   await logActivity({
     type: archived ? "group_archived" : "group_restored",
-    actorId: user.id,
+    actorId: user.userId,
     groupId,
     payload: { name: group.name },
   });
@@ -223,12 +248,16 @@ export async function deleteGroupAction(_prev: ActionState, formData: FormData):
 }
 
 export async function addGuestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  let user: Actor;
+  try {
+    user = await requireGroupActor(String(formData.get("groupId") ?? ""));
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
   const groupId = String(formData.get("groupId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
 
-  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
-  if (!membership) return { error: "Du bist kein Mitglied dieser Gruppe." };
   if (name.length < 2) return { error: "Bitte gib einen Namen an." };
   if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
 
@@ -241,7 +270,7 @@ export async function addGuestAction(_prev: ActionState, formData: FormData): Pr
     data: { name, email: null, passwordHash: null, isGuest: true, avatarColor: colorForId(name + groupId) },
   });
   await prisma.groupMember.create({ data: { groupId, userId: guest.id } });
-  await logActivity({ type: "guest_added", actorId: user.id, groupId, payload: { name } });
+  await logActivity({ type: "guest_added", actorId: user.userId, groupId, payload: { name } });
 
   revalidatePath(`/gruppen/${groupId}`);
   return { success: `${name} ist jetzt als Person ohne Konto dabei.` };
@@ -434,4 +463,160 @@ export async function carryOverGroupAction(_prev: ActionState, formData: FormDat
   revalidatePath("/uebersicht");
   revalidatePath("/gruppen");
   redirect(`/gruppen/${created.id}`);
+}
+
+/** Erzeugt einen Freigabe-Code für den gemeinsamen Link. */
+function newPublicToken(): string {
+  return newInviteToken();
+}
+
+/**
+ * Gemeinsame Abrechnung ohne Konto anlegen. Wer sie erstellt, wird als Person
+ * ohne Konto eingetragen und über ein Cookie wiedererkannt.
+ */
+export async function createSharedBoardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const groupName = String(formData.get("name") ?? "").trim();
+  const ownName = String(formData.get("ownName") ?? "").trim();
+  const currency = String(formData.get("currency") ?? "EUR");
+  const others = String(formData.get("others") ?? "")
+    .split(/[,\n;]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .slice(0, 30);
+
+  if (groupName.length < 2) return { error: "Bitte gib der Abrechnung einen Namen." };
+  if (groupName.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
+  if (ownName.length < 2) return { error: "Bitte gib deinen Namen an." };
+  if (ownName.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
+  if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
+
+  const account = await getCurrentUser();
+  const publicToken = newPublicToken();
+
+  // Angemeldete Personen bleiben sie selbst, alle anderen werden zu Gästen.
+  const me = account
+    ? { id: account.id, isGuest: false }
+    : await prisma.user.create({
+        data: {
+          name: ownName,
+          email: null,
+          passwordHash: null,
+          isGuest: true,
+          avatarColor: colorForId(ownName + publicToken),
+        },
+        select: { id: true, isGuest: true },
+      });
+
+  const group = await prisma.group.create({
+    data: {
+      name: groupName,
+      type: "other",
+      currency,
+      simplifyDebts: true,
+      inviteToken: newInviteToken(),
+      publicToken,
+      createdById: me.id,
+      members: { create: [{ userId: me.id, role: account ? "owner" : "member" }] },
+    },
+  });
+
+  for (const name of new Set(others.filter((name) => name !== ownName))) {
+    const guest = await prisma.user.create({
+      data: {
+        name,
+        email: null,
+        passwordHash: null,
+        isGuest: true,
+        avatarColor: colorForId(name + group.id),
+      },
+    });
+    await prisma.groupMember.create({ data: { groupId: group.id, userId: guest.id } });
+  }
+
+  if (!account) await rememberLinkIdentity(group.id, me.id);
+  await logActivity({ type: "group_created", actorId: me.id, groupId: group.id, payload: { name: groupName } });
+
+  redirect(`/gemeinsam/${publicToken}`);
+}
+
+/** Beim Öffnen eines geteilten Links festlegen, wer man ist. */
+export async function joinSharedBoardAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const token = String(formData.get("token") ?? "");
+  const existingId = String(formData.get("personId") ?? "").trim();
+  const newName = String(formData.get("name") ?? "").trim();
+
+  const group = await prisma.group.findUnique({
+    where: { publicToken: token },
+    include: { members: { include: { user: { select: { id: true, name: true, isGuest: true } } } } },
+  });
+  if (!group) return { error: "Dieser Link ist nicht (mehr) gültig." };
+
+  const account = await getCurrentUser();
+
+  // Angemeldete Personen treten als sie selbst bei.
+  if (account) {
+    if (!group.members.some((member) => member.userId === account.id)) {
+      await prisma.groupMember.create({ data: { groupId: group.id, userId: account.id } });
+      await logActivity({
+        type: "member_joined",
+        actorId: account.id,
+        groupId: group.id,
+        payload: { name: account.name },
+      });
+    }
+    redirect(`/gemeinsam/${token}`);
+  }
+
+  if (existingId) {
+    const member = group.members.find((entry) => entry.userId === existingId);
+    if (!member) return { error: "Diese Person gehört nicht zu dieser Abrechnung." };
+    await rememberLinkIdentity(group.id, member.userId);
+    redirect(`/gemeinsam/${token}`);
+  }
+
+  if (newName.length < 2) return { error: "Bitte gib deinen Namen an." };
+  if (newName.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
+  if (group.members.some((member) => member.user.name === newName)) {
+    return { error: `„${newName}“ ist hier schon eingetragen – bitte oben auswählen.` };
+  }
+
+  const person = await prisma.user.create({
+    data: {
+      name: newName,
+      email: null,
+      passwordHash: null,
+      isGuest: true,
+      avatarColor: colorForId(newName + group.id),
+    },
+  });
+  await prisma.groupMember.create({ data: { groupId: group.id, userId: person.id } });
+  await rememberLinkIdentity(group.id, person.id);
+  await logActivity({ type: "member_joined", actorId: person.id, groupId: group.id, payload: { name: newName } });
+
+  redirect(`/gemeinsam/${token}`);
+}
+
+/** Den gemeinsamen Link für eine bestehende Gruppe ein- oder ausschalten. */
+export async function setPublicSharingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const groupId = String(formData.get("groupId") ?? "");
+  const enabled = String(formData.get("enabled") ?? "") === "true";
+
+  try {
+    await requireGroupActor(groupId);
+  } catch (error) {
+    if (error instanceof ActorError) return { error: error.message };
+    throw error;
+  }
+
+  await prisma.group.update({
+    where: { id: groupId },
+    data: { publicToken: enabled ? newPublicToken() : null },
+  });
+
+  revalidatePath(`/gruppen/${groupId}/einstellungen`);
+  return {
+    success: enabled
+      ? "Der gemeinsame Link ist aktiv. Alle, die ihn haben, können mitarbeiten."
+      : "Der gemeinsame Link wurde abgeschaltet.",
+  };
 }

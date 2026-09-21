@@ -17,11 +17,15 @@ export function SettleForm({
   groups,
   friends,
   defaults,
+  returnTo,
+  lockGroup = false,
 }: {
   currentUser: PersonOption;
   groups: ExpenseFormGroup[];
   friends: PayablePerson[];
   defaults: { groupId: string; fromUserId: string; toUserId: string; amount: string; currency: string };
+  returnTo?: string;
+  lockGroup?: boolean;
 }) {
   const [state, formAction] = useActionState(settleUpAction, null);
   const [groupId, setGroupId] = useState(defaults.groupId);
@@ -41,7 +45,8 @@ export function SettleForm({
 
   return (
     <form action={formAction} className="card space-y-4 p-5">
-      <div>
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
+      <div className={lockGroup ? "hidden" : ""}>
         <label className="label" htmlFor="groupId">
           Gruppe
         </label>
@@ -172,7 +177,7 @@ export function SettleForm({
       <FormAlert state={state} />
       <div className="flex gap-2">
         <SubmitButton className="btn-primary">Zahlung speichern</SubmitButton>
-        <Link href={groupId ? `/gruppen/${groupId}` : "/uebersicht"} className="btn-secondary">
+        <Link href={returnTo ?? (groupId ? `/gruppen/${groupId}` : "/uebersicht")} className="btn-secondary">
           Abbrechen
         </Link>
       </div>
