@@ -112,6 +112,20 @@ mkdir -p /var/www/vhosts/fairteilen.app/private/belege
 Für Sicherungen gilt: Datenbank **und** dieses Verzeichnis zusammen sichern – einzeln ergeben sie
 kein vollständiges Bild.
 
+### Aufbau der Datenbankadresse
+
+`DATABASE_URL` ist eine vollständige Adresse und muss mit der Datenbankart beginnen:
+
+```
+mysql://BENUTZER:PASSWORT@HOST:PORT/DATENBANK
+```
+
+Ein häufiger Fehler ist, nur das zu übernehmen, was Plesk bei der Datenbank anzeigt – also
+`benutzer:passwort@localhost:3306/datenbank`. Ohne das führende `mysql://` ist der Wert ungültig,
+und Prisma meldet lediglich `Environment variable not found` oder einen Schema-Fehler.
+
+`npm run doctor` prüft das und benennt genau diesen Fall.
+
 ### Hinweise zu den Werten
 
 Enthält das Datenbankpasswort Sonderzeichen wie `@`, `:`, `/` oder `#`, müssen diese in der URL

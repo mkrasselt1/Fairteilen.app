@@ -177,11 +177,35 @@ if (existsSync("prisma/schema.prisma")) {
   const url = process.env.DATABASE_URL ?? "";
   const expected = { mysql: ["mysql:"], postgresql: ["postgres:", "postgresql:"], sqlite: ["file:"] }[provider ?? ""];
   console.log(`Datenbank-Provider ${provider}`);
-  if (url && expected && !expected.some((prefix) => url.startsWith(prefix))) {
-    problems.push(
-      `Das Schema ist auf „${provider}“ eingestellt, DATABASE_URL beginnt aber anders. ` +
-        `Passenden Umschalter ausführen: npm run use:mysql | use:postgres | use:sqlite`,
-    );
+
+  if (url && expected) {
+    const scheme = url.match(/^([a-z][a-z0-9+.-]*):/i)?.[1];
+    if (!scheme) {
+      // Häufigster Tippfehler: Die Adresse beginnt direkt mit dem Benutzernamen.
+      problems.push(
+        "DATABASE_URL fehlt die Angabe der Datenbankart am Anfang.\n" +
+          `    Erwartet wird ein Wert der Form:\n` +
+          `      ${expected[0]}//BENUTZER:PASSWORT@HOST:PORT/DATENBANK\n` +
+          `    Beginnt er direkt mit dem Benutzernamen, fehlt „${expected[0]}//“ davor.`,
+      );
+    } else if (!expected.some((prefix) => url.startsWith(prefix))) {
+      problems.push(
+        `Das Schema ist auf „${provider}“ eingestellt, DATABASE_URL beginnt aber mit „${scheme}:“.\n` +
+          `    Passenden Umschalter ausführen: npm run use:mysql | use:postgres | use:sqlite`,
+      );
+    } else if (provider !== "sqlite") {
+      try {
+        const parsed = new URL(url);
+        if (!parsed.hostname) problems.push("In DATABASE_URL fehlt der Rechnername (host).");
+        if (!parsed.pathname.replace(/^\//, "")) problems.push("In DATABASE_URL fehlt der Name der Datenbank.");
+        if (!parsed.username) problems.push("In DATABASE_URL fehlt der Benutzername.");
+      } catch {
+        problems.push(
+          "DATABASE_URL lässt sich nicht lesen. Enthält das Passwort Sonderzeichen, müssen sie\n" +
+            "    kodiert werden: @ wird zu %40, # zu %23, / zu %2F, : zu %3A.",
+        );
+      }
+    }
   }
 }
 
