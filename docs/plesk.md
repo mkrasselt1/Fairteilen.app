@@ -287,6 +287,23 @@ Domains auf demselben Server ohne Beschwerden.
 und `umgebung.log` mit der Ausgabe von `ldd --version` aus der SSH-Sitzung vergleichen. Stehen dort
 unterschiedliche Fassungen, ist es die chroot-Umgebung.
 
+**Hilft es, den chroot aus- und wieder einzuschalten?** Möglicherweise – aber nur, wenn Plesks
+**Vorlage** aktuell ist. Beim Einschalten kopiert Plesk aus dieser Vorlage in das Abonnement; ist
+sie selbst veraltet, landen danach wieder dieselben alten Bibliotheken dort. Das lässt sich vorher
+nachsehen, ohne etwas zu verändern: `libc.so.6` nennt ihre Version, wenn man sie direkt aufruft.
+
+```bash
+for pfad in /lib /var/www/vhosts/chroot/lib /var/www/vhosts/DEINE-DOMAIN/lib; do
+  datei=$(find "$pfad" -name 'libc.so.6' 2>/dev/null | head -1)
+  [ -n "$datei" ] && echo "$datei → $("$datei" 2>/dev/null | head -1)"
+done
+```
+
+Die drei Zeilen zeigen System, Vorlage und die Umgebung der Domain:
+
+- **Vorlage aktuell** (gleiche Fassung wie das System) → aus- und wieder einschalten hilft.
+- **Vorlage veraltet** → es würde nur dasselbe erneut kopiert; dann einen der Wege unten nehmen.
+
 **Wege heraus**, vom einfachsten zum gründlichsten:
 
 1. **Passende Node-Version wählen.** Auf der Node.js-Seite eine Version nehmen, die in der
