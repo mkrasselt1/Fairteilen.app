@@ -175,6 +175,28 @@ sh ./scripts/plesk-deploy.sh
 
 Danach in Plesk noch **App neu starten**.
 
+### Prüfen, ob die Datenbank wirklich erreichbar ist
+
+Skript **`doctor`** ausführen (Node.js-Seite → *NPM-Skript ausführen*, oder per SSH
+`npm run doctor`). Es baut eine echte Verbindung auf und zählt die vorhandenen Datensätze:
+
+```
+DATABASE_URL       mysql://fairteilen:***@localhost:3306/fairteilen
+Datenbank-Provider mysql
+Verbindung         steht – 3 Konten, 1 Gruppen, 8 Einträge
+
+✓ Keine Probleme gefunden.
+```
+
+Klemmt es, wird der Grund im Klartext genannt statt als Prisma-Meldung:
+
+| Anzeige | Bedeutung |
+|---|---|
+| Benutzername oder Passwort stimmen nicht | Zugangsdaten in `DATABASE_URL` prüfen |
+| Die Datenbank gibt es nicht, oder der Benutzer hat darauf keine Rechte | Datenbanknamen prüfen, Rechte in Plesk vergeben |
+| Der Datenbankserver ist unter dieser Adresse nicht erreichbar | Rechnername und Port prüfen |
+| Die Verbindung steht, aber die Tabellen fehlen noch | Skript `db:push` ausführen |
+
 ### Ohne Git – zwei Klicks auf der Node.js-Seite
 
 1. **NPM install** (das Paket-Symbol neben *App neu starten*)

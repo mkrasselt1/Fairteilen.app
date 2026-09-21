@@ -209,6 +209,52 @@ if (existsSync("prisma/schema.prisma")) {
   }
 }
 
+// 7. Tatsächlich verbinden – der eigentliche Test
+if (process.env.DATABASE_URL && existsSync(join("node_modules", "@prisma", "client"))) {
+  try {
+    const { PrismaClient } = await import("@prisma/client");
+    const prisma = new PrismaClient({ log: [] });
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      try {
+        const [konten, gruppen, eintraege] = await Promise.all([
+          prisma.user.count(),
+          prisma.group.count(),
+          prisma.expense.count(),
+        ]);
+        console.log(
+          `Verbindung         steht – ${konten} Konten, ${gruppen} Gruppen, ${eintraege} Einträge`,
+        );
+      } catch {
+        problems.push(
+          "Die Verbindung steht, aber die Tabellen fehlen noch.\n" +
+            "    Einmalig ausführen: npm run db:push",
+        );
+      }
+    } finally {
+      await prisma.$disconnect();
+    }
+  } catch (error) {
+    // Prisma liefert hier keinen Fehlercode mit, deshalb am Text unterscheiden.
+    const text = String(error?.message ?? error);
+    const erklaerung = /Authentication failed/i.test(text)
+      ? "Benutzername oder Passwort stimmen nicht."
+      : /denied access on the database/i.test(text)
+        ? "Die Datenbank gibt es nicht, oder der Benutzer hat darauf keine Rechte."
+        : /Can't reach database server/i.test(text)
+          ? "Der Datenbankserver ist unter dieser Adresse nicht erreichbar. Läuft er? Stimmen Rechnername und Port?"
+          : /invalid port number|database string is invalid/i.test(text)
+            ? "Die Adresse ist fehlerhaft. Enthält das Passwort # / oder ?, müssen sie kodiert werden."
+            : (text
+                .split("\n")
+                .map((line) => line.trim())
+                .find((line) => line && !/invocation|^at /.test(line)) ?? "unbekannter Fehler"
+              ).slice(0, 160);
+
+    problems.push(`Die Datenbank ist nicht erreichbar.\n    ${erklaerung}`);
+  }
+}
+
 console.log("");
 if (notes.length > 0) {
   for (const note of notes) console.log(`  Hinweis: ${note}`);
