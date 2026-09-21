@@ -46,13 +46,18 @@ export default async function LoginPage({
       )}
 
       <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center dark:border-slate-700">
-        <p className="text-sm font-medium">Nur schnell etwas ausrechnen?</p>
+        <p className="text-sm font-medium">Du brauchst gar kein Konto</p>
         <p className="hint mt-1">
-          Der Rechner funktioniert ganz ohne Konto – alle Daten bleiben in deinem Browser.
+          Gemeinsam abrechnen geht über einen Link, allein nachrechnen direkt im Browser.
         </p>
-        <Link href="/rechner" className="btn-secondary mt-3 w-full">
-          Ohne Anmeldung aufteilen
-        </Link>
+        <div className="mt-3 grid gap-2">
+          <Link href="/gemeinsam/start" className="btn-secondary w-full">
+            Gemeinsame Abrechnung anlegen
+          </Link>
+          <Link href="/rechner" className="btn-ghost w-full">
+            Allein ausrechnen
+          </Link>
+        </div>
       </div>
     </div>
   );

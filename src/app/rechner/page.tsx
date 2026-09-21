@@ -51,19 +51,24 @@ export default async function CalculatorPage() {
 
         {!user && (
           <section className="card p-5">
-            <h2 className="font-semibold">Mehr Möglichkeiten mit einem Konto</h2>
+            <h2 className="font-semibold">Sollen die anderen mitmachen?</h2>
             <p className="hint mt-1">
-              Mit einem kostenlosen Konto könnt ihr dauerhaft gemeinsam abrechnen: mehrere Gruppen, Einladungslinks,
-              Zahlungen erfassen, Kommentare, wiederkehrende Ausgaben und ein Verlauf für alle Beteiligten.
+              Diese Seite rechnet nur für dich – die Eingaben bleiben auf diesem Gerät. Wenn alle Beteiligten
+              selbst eintragen sollen, leg eine gemeinsame Abrechnung an und teile den Link. Auch dafür
+              braucht niemand ein Konto.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Link href="/registrieren" className="btn-primary">
-                Kostenloses Konto erstellen
-              </Link>
-              <Link href="/anmelden" className="btn-secondary">
-                Anmelden
+            <div className="mt-3">
+              <Link href="/gemeinsam/start" className="btn-primary">
+                Gemeinsame Abrechnung anlegen
               </Link>
             </div>
+            <p className="hint mt-4">
+              Wer regelmäßig abrechnet, kann sich ein{" "}
+              <Link href="/registrieren" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
+                Konto anlegen
+              </Link>
+              . Für alles oben ist das nicht nötig.
+            </p>
           </section>
         )}
       </main>

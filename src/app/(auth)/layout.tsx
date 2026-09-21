@@ -13,6 +13,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <br />
             fair geteilt.
           </h1>
+          <p className="text-brand-50">
+            Ein Konto ist freiwillig – es bündelt nur alle Abrechnungen an einem Ort und auf jedem
+            Gerät. Gemeinsam abrechnen geht auch ganz ohne.
+          </p>
           <ul className="space-y-3 text-brand-50">
             {[
               "Gruppen für WG, Reise, Paar oder Projekt",
@@ -21,7 +25,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               "Schulden automatisch vereinfachen und mit einem Klick begleichen",
               "Wiederkehrende Ausgaben, Kommentare, Aktivitätsverlauf, CSV-Export",
               "Kostenlos, quelloffen und selbst hostbar – keine Werbung, kein Abo",
-              "Schnell-Rechner, der ganz ohne Konto funktioniert",
+              "Gemeinsam abrechnen über einen Link – ganz ohne Konto",
             ].map((item) => (
               <li key={item} className="flex gap-3">
                 <span aria-hidden>✓</span>

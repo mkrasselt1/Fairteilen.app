@@ -15,6 +15,7 @@ import {
   RegenerateInviteForm,
   ArchiveForm,
   CarryOverForm,
+  PublicSharingForm,
 } from "./forms";
 
 export const metadata: Metadata = { title: "Gruppeneinstellungen" };
@@ -132,6 +133,26 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
           <AddMemberForm groupId={group.id} />
           <AddGuestForm groupId={group.id} />
         </div>
+      </section>
+
+      <section className="card p-5">
+        <h2 className="mb-1 font-semibold">Ohne Konto mitarbeiten lassen</h2>
+        <p className="hint mb-3">
+          {group.publicToken
+            ? "Alle mit diesem Link können Ausgaben eintragen und den Stand sehen, ohne sich anzumelden."
+            : "Wenn nicht alle ein Konto anlegen möchten: Mit einem gemeinsamen Link kann jede Person mitarbeiten, die ihn hat."}
+        </p>
+        {group.publicToken && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <input
+              readOnly
+              value={`${await baseUrl()}/gemeinsam/${group.publicToken}`}
+              className="input flex-1 min-w-[16rem] font-mono text-xs"
+            />
+            <CopyButton value={`${await baseUrl()}/gemeinsam/${group.publicToken}`} />
+          </div>
+        )}
+        <PublicSharingForm groupId={group.id} enabled={group.publicToken !== null} />
       </section>
 
       <section className="card p-5">

@@ -8,9 +8,12 @@ braucht nicht einmal ein Konto.
 
 ## Funktionsumfang
 
-### Öffentlich
+### Ohne Konto
+- **Gemeinsam abrechnen über einen Link** (`/gemeinsam/start`): Abrechnung anlegen, Link teilen –
+  alle Beteiligten tragen ein, sehen den Stand, kommentieren und laden Belege hoch, ohne sich
+  anzumelden. Wer den Link öffnet, sagt nur, wer er ist; ein signiertes Cookie merkt sich das
+- **Rechner** `/rechner`: allein nachrechnen, alles bleibt im Browser
 - Startseite `/` mit Funktionsüberblick, Ablauf und häufigen Fragen
-- Rechner `/rechner`, siehe unten
 - Vorbereitet für Suchmaschinen: Titel und Beschreibungen je Seite, strukturierte Daten,
   Vorschaubild, `robots.txt` und `sitemap.xml`; persönliche Bereiche stehen auf `noindex`.
   Wie es weitergeht, steht in [docs/sichtbarkeit.md](docs/sichtbarkeit.md)
@@ -22,7 +25,7 @@ braucht nicht einmal ein Konto.
 - Ergebnis teilen (Web Share / Zwischenablage) und CSV-Download
 - **Es wird nichts an den Server gesendet** – der Stand liegt allein im `localStorage` des Browsers
 
-### Mit Konto
+### Mit Konto (freiwillig)
 | Bereich | Details |
 |---|---|
 | **Gruppen** | Reise, WG, Paar, Veranstaltung, Projekt; Einladungslink, Mitgliederverwaltung, Gruppenwährung |
@@ -36,6 +39,7 @@ braucht nicht einmal ein Konto.
 | **Zahlungen** | „Begleichen“ erfasst echte Überweisungen und verrechnet sie |
 | **Zahlungsangaben** | Wero, IBAN und wahlweise PayPal-Adresse im Profil; beim Begleichen wird angezeigt, wohin das Geld soll. Reine Anzeige – es läuft keine Zahlung über Fairteilen |
 | **Gäste** | Personen ohne Konto können mitgeführt werden und ihren Platz später selbst übernehmen |
+| **Gemeinsamer Link** | Jede Gruppe kann für die Mitarbeit ohne Konto freigegeben werden |
 | **Ausgleich** | Eine Seite über alle Gruppen hinweg: jede Person einmal, mit Nettobetrag und Herkunft |
 | **Fortsetzen** | Offene Beträge in eine neue Gruppe übertragen, wenn dieselben Leute weitermachen |
 | **Wiederkehrend** | täglich, wöchentlich, monatlich, jährlich – mit optionalem Enddatum |

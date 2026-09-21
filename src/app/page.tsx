@@ -25,9 +25,14 @@ export const metadata: Metadata = {
 
 const FEATURES = [
   {
+    icon: "🔗",
+    title: "Kein Konto nötig",
+    text: "Abrechnung anlegen, Link teilen, loslegen. Wer den Link hat, trägt ein und sieht den Stand – ohne Registrierung.",
+  },
+  {
     icon: "👥",
     title: "Gruppen für alles",
-    text: "WG, Reise, Paar, Veranstaltung oder Projekt. Andere kommen per Einladungslink dazu und sehen sofort denselben Stand.",
+    text: "WG, Reise, Paar, Veranstaltung oder Projekt. Alle sehen sofort denselben Stand.",
   },
   {
     icon: "🧮",
@@ -57,8 +62,8 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { title: "Gruppe anlegen", text: "Gib der Abrechnung einen Namen – etwa „Skiurlaub“ oder „WG Hauptstraße“." },
-  { title: "Andere einladen", text: "Einladungslink teilen. Wer draufklickt, ist in Sekunden dabei." },
+  { title: "Abrechnung anlegen", text: "Name eingeben, Beteiligte eintragen – fertig. Ohne Anmeldung." },
+  { title: "Link teilen", text: "Der Link geht in die Gruppe. Wer draufklickt, sagt nur, wer er ist." },
   { title: "Ausgaben eintragen", text: "Wer hat bezahlt, wer war beteiligt? Der Rest passiert automatisch." },
   { title: "Begleichen", text: "Am Ende sagt Fairteilen genau, wer wem wie viel überweisen muss." },
 ];
@@ -70,11 +75,15 @@ const FAQ = [
   },
   {
     q: "Brauche ich ein Konto?",
-    a: "Nur wenn du dauerhaft mit anderen abrechnen möchtest. Für eine schnelle Aufteilung genügt der Rechner: Er läuft vollständig im Browser, ohne Anmeldung und ohne dass Daten an einen Server gehen.",
+    a: "Nein. Eine gemeinsame Abrechnung entsteht über einen Link – alle Beteiligten tragen ein, ohne sich anzumelden. Für eine schnelle Rechnung allein genügt der Rechner, der vollständig im Browser läuft. Ein Konto lohnt sich erst, wenn du regelmäßig mit denselben Leuten abrechnest und alles an einem Ort haben möchtest.",
   },
   {
     q: "Können mehrere Personen gemeinsam abrechnen?",
-    a: "Ja. In einer Gruppe sehen alle Mitglieder dieselben Ausgaben und Salden, können Einträge anlegen, bearbeiten und kommentieren. Ein Verlauf zeigt, wer was geändert hat.",
+    a: "Ja, und dafür braucht niemand ein Konto. Wer den Link hat, sieht dieselben Ausgaben und Salden, kann Einträge anlegen, bearbeiten und kommentieren. Ein Verlauf zeigt, wer was geändert hat.",
+  },
+  {
+    q: "Was passiert, wenn jemand den Link weitergibt?",
+    a: "Wer den Link hat, kann mitlesen und mitschreiben – teile ihn deshalb nur mit den Beteiligten. Der Code ist zufällig und lang genug, dass er nicht erraten werden kann; erraten oder über Suchmaschinen gefunden wird eine Abrechnung nicht.",
   },
   {
     q: "Was passiert mit meinen Daten?",
@@ -134,7 +143,10 @@ export default async function LandingPage() {
               Rechner
             </Link>
             <ThemeToggle />
-            <Link href="/anmelden" className="btn-secondary !px-3 !py-1.5">
+            <Link
+              href="/anmelden"
+              className="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:text-slate-900 hover:underline dark:text-slate-400 dark:hover:text-slate-100"
+            >
               Anmelden
             </Link>
           </nav>
@@ -153,14 +165,43 @@ export default async function LandingPage() {
             aus – kostenlos, ohne Werbung und ohne Abo.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/rechner" className="btn-primary !px-6 !py-3 !text-base">
-              Ohne Anmeldung ausrechnen
+            <Link href="/gemeinsam/start" className="btn-primary !px-6 !py-3 !text-base">
+              Gemeinsam abrechnen
             </Link>
-            <Link href="/registrieren" className="btn-secondary !px-6 !py-3 !text-base">
-              Kostenloses Konto erstellen
+            <Link href="/rechner" className="btn-secondary !px-6 !py-3 !text-base">
+              Allein ausrechnen
             </Link>
           </div>
-          <p className="hint mt-4">Keine Kreditkarte, keine Testphase, keine Begrenzung.</p>
+          <p className="hint mt-4">Ohne Konto, ohne E-Mail-Adresse, ohne Kosten.</p>
+
+          <div className="mx-auto mt-10 grid max-w-3xl gap-4 text-left sm:grid-cols-2">
+            <Link
+              href="/gemeinsam/start"
+              className="card p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700"
+            >
+              <p className="text-2xl" aria-hidden>
+                🔗
+              </p>
+              <h2 className="mt-2 font-semibold">Zu mehreren, per Link</h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Abrechnung anlegen, Link in die Gruppe schicken. Alle tragen ein, alle sehen den Stand.
+                Niemand muss sich anmelden.
+              </p>
+            </Link>
+            <Link
+              href="/rechner"
+              className="card p-5 transition hover:border-brand-300 hover:shadow-md dark:hover:border-brand-700"
+            >
+              <p className="text-2xl" aria-hidden>
+                🧮
+              </p>
+              <h2 className="mt-2 font-semibold">Allein, im Browser</h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Schnell nachrechnen, wer wem was schuldet. Die Daten bleiben auf deinem Gerät und gehen
+                nirgendwo hin.
+              </p>
+            </Link>
+          </div>
         </section>
 
         <section className="border-y border-slate-200 bg-white py-14 dark:border-slate-800 dark:bg-slate-900">
@@ -212,17 +253,21 @@ export default async function LandingPage() {
         <section className="mx-auto max-w-3xl px-4 py-16 text-center">
           <h2 className="text-2xl font-bold">Gleich ausprobieren</h2>
           <p className="mt-3 text-slate-600 dark:text-slate-300">
-            Der Rechner braucht kein Konto – und wenn ihr dauerhaft gemeinsam abrechnen wollt, ist die Anmeldung in
-            einer Minute erledigt.
+            Eine Abrechnung ist in zwanzig Sekunden angelegt – der Link geht danach einfach in die Gruppe.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/rechner" className="btn-primary !px-6 !py-3 !text-base">
-              Zum Rechner
-            </Link>
-            <Link href="/registrieren" className="btn-secondary !px-6 !py-3 !text-base">
-              Konto erstellen
+            <Link href="/gemeinsam/start" className="btn-primary !px-6 !py-3 !text-base">
+              Abrechnung anlegen
             </Link>
           </div>
+          <p className="hint mx-auto mt-6 max-w-xl">
+            Wer regelmäßig mit denselben Leuten abrechnet, kann sich ein{" "}
+            <Link href="/registrieren" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
+              kostenloses Konto
+            </Link>{" "}
+            anlegen: Dann liegen alle Abrechnungen an einem Ort, auf jedem Gerät. Nötig ist es für nichts
+            davon.
+          </p>
         </section>
       </main>
 

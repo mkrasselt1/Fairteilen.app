@@ -46,6 +46,33 @@ const landingHtml = await page.content();
 check("Startseite trägt strukturierte Daten", landingHtml.includes("SoftwareApplication") && landingHtml.includes("FAQPage"));
 check("Startseite ist nicht auf noindex", !/name="robots"[^>]*noindex/.test(landingHtml));
 
+// 1c. Gemeinsame Abrechnung ohne Konto
+const ctxLink = await browser.newContext();
+const gast = await ctxLink.newPage();
+await gast.goto(`${BASE}/gemeinsam/start`);
+await gast.fill("#name", "Linkprobe");
+await gast.fill("#ownName", "Gastgeberin");
+await gast.fill("#others", "Mitreisender");
+await gast.getByRole("button", { name: "Abrechnung anlegen" }).click();
+await gast.waitForURL(/\/gemeinsam\/(?!start)[^/]+$/, { timeout: 20000 });
+const boardUrl = gast.url();
+check("Abrechnung ohne Konto angelegt", /\/gemeinsam\//.test(boardUrl), boardUrl);
+
+await gast.goto(`${boardUrl}/ausgabe/neu`);
+await gast.fill("#description", "Benzin");
+await gast.fill("#amount", "80");
+await gast.getByRole("button", { name: "Ausgabe speichern" }).click();
+await gast.getByText("Benzin").first().waitFor({ timeout: 20000 });
+check("Eintrag ohne Konto möglich", (await gast.innerText("body")).includes("40,00"), "");
+
+const ctxZweit = await browser.newContext();
+const zweit = await ctxZweit.newPage();
+await zweit.goto(boardUrl);
+await zweit.locator('input[name="personId"]').nth(1).check();
+await zweit.getByRole("button", { name: "Los geht's" }).click();
+await zweit.getByText("du bist Mitreisender").waitFor({ timeout: 20000 });
+check("Zweite Person übernimmt ihren Platz", (await zweit.innerText("body")).includes("Benzin"), "");
+
 // 2. Registrierung
 await page.goto(`${BASE}/registrieren`);
 await page.fill("#name", "Testerin Eins");

@@ -10,9 +10,11 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/rechner", "/anmelden", "/registrieren"],
+        // Die längere Regel gewinnt: Die Startseite des Link-Modus ist öffentlich,
+        // die einzelnen Abrechnungen nicht.
+        allow: ["/", "/rechner", "/gemeinsam/start", "/anmelden", "/registrieren"],
         // Persönliche Bereiche gehören nicht in den Index.
-        disallow: ["/uebersicht", "/gruppen", "/freunde", "/ausgaben", "/konto", "/aktivitaet", "/begleichen", "/export", "/beitreten", "/api"],
+        disallow: ["/uebersicht", "/gruppen", "/freunde", "/ausgaben", "/konto", "/aktivitaet", "/begleichen", "/export", "/beitreten", "/gemeinsam/", "/api"],
       },
     ],
     sitemap: `${siteUrl()}/sitemap.xml`,

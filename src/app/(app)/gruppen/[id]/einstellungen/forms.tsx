@@ -7,6 +7,7 @@ import {
   addMemberAction,
   regenerateInviteAction,
   setGroupArchivedAction,
+  setPublicSharingAction,
   updateGroupAction,
 } from "@/actions/groups";
 import { FormAlert, SubmitButton } from "@/components/forms";
@@ -189,6 +190,20 @@ export function CarryOverForm({ groupId, groupName }: { groupId: string; groupNa
       <SubmitButton className="btn-secondary" pendingLabel="Wird übertragen …">
         Fortsetzung anlegen
       </SubmitButton>
+    </form>
+  );
+}
+
+export function PublicSharingForm({ groupId, enabled }: { groupId: string; enabled: boolean }) {
+  const [state, formAction] = useActionState(setPublicSharingAction, null);
+  return (
+    <form action={formAction} className="space-y-2">
+      <input type="hidden" name="groupId" value={groupId} />
+      <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
+      <SubmitButton className={enabled ? "btn-secondary" : "btn-primary"} pendingLabel="…">
+        {enabled ? "Gemeinsamen Link abschalten" : "Gemeinsamen Link erstellen"}
+      </SubmitButton>
+      <FormAlert state={state} />
     </form>
   );
 }
