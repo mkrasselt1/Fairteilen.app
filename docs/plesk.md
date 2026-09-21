@@ -233,7 +233,25 @@ in der Plesk die Bereitstellungsaktionen ausführt – meist ein Node aus einer 
 (nvm, ein manuell entpacktes Archiv, ein Paket aus einem neueren Distributionszweig). Plesk kürzt
 den Programmnamen in der Anzeige leider auf `-`.
 
-#### Ursache finden
+#### Zuerst: unabhängig von den Projektdateien nachsehen
+
+Liegt auf dem Server noch ein älterer Stand, sind die Prüfskripte des Projekts dort gar nicht
+vorhanden. Diese Zeile braucht keine Datei aus dem Repository – als **einzige** Zeile in
+*Zusätzliche Bereitstellungsaktionen* eintragen und das Ergebnis im selben Fenster ablesen:
+
+```sh
+{ echo "--- Ort ---"; pwd; git log --oneline -1 2>&1 | head -1; echo "--- System ---"; (getconf GNU_LIBC_VERSION 2>/dev/null || ldd --version 2>/dev/null | head -1); echo "--- PATH ---"; echo "$PATH" | tr ':' '\n'; echo "--- node/npm im Suchpfad ---"; echo "$PATH" | tr ':' '\n' | while read d; do for n in node npm; do [ -x "$d/$n" ] && echo "$d/$n braucht $(grep -ao 'GLIBC_[0-9][0-9.]*' "$d/$n" 2>/dev/null | sort -u -t_ -k2 -V | tail -1) und meldet $("$d/$n" --version 2>&1 | head -1)"; done; done; echo "--- Plesk-Node ---"; ls -d /opt/plesk/node/*/bin/node 2>/dev/null || echo "keins"; } 2>&1
+```
+
+Sie zeigt auf einen Blick:
+
+- **welcher Stand** auf dem Server liegt (die Commit-Zeile – stimmt der Branch?),
+- **welche glibc** das System hat,
+- **jedes** gefundene `node` und `npm` mit der C-Bibliothek, die es verlangt.
+
+Der Eintrag mit einer höheren Zahl als die Systemversion ist die Ursache.
+
+#### Ursache finden, wenn der Code aktuell ist
 
 Das Projekt bringt zwei Werkzeuge dafür mit:
 
@@ -262,7 +280,7 @@ sh ./scripts/plesk-deploy.sh
 Das Skript setzt PATH innerhalb desselben Aufrufs und wählt selbst ein Node, das zur
 C-Bibliothek des Servers passt.
 
-**Weg 1 – keine Bereitstellungsaktionen verwenden.**
+**Weg 1 – empfohlen, wenn es einfach laufen soll: keine Bereitstellungsaktionen verwenden.**
 Das Feld *Zusätzliche Bereitstellungsaktionen* leer lassen. Git bringt dann nur die Dateien auf den
 Server; gebaut wird über die Node.js-Seite mit **NPM install** und dem Skript **`setup`**
 (Abschnitt 5). Diese Knöpfe benutzen immer die in Plesk ausgewählte Node-Version und umgehen die
