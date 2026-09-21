@@ -28,13 +28,18 @@ export type GuestState = {
   expenses: GuestExpense[];
 };
 
-export function emptyGuestState(): GuestState {
+/** Standardtexte der leeren Abrechnung – übersetzbar von außen. */
+export type GuestLabels = { title: string; me: string; second: string };
+
+const DEFAULT_LABELS: GuestLabels = { title: "Meine Abrechnung", me: "Ich", second: "Person 2" };
+
+export function emptyGuestState(labels: GuestLabels = DEFAULT_LABELS): GuestState {
   return {
-    title: "Meine Abrechnung",
+    title: labels.title,
     currency: "EUR",
     people: [
-      { id: newId(), name: "Ich" },
-      { id: newId(), name: "Person 2" },
+      { id: newId(), name: labels.me },
+      { id: newId(), name: labels.second },
     ],
     expenses: [],
   };
@@ -44,16 +49,16 @@ export function newId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 }
 
-export function loadGuestState(): GuestState {
-  if (typeof window === "undefined") return emptyGuestState();
+export function loadGuestState(labels?: GuestLabels): GuestState {
+  if (typeof window === "undefined") return emptyGuestState(labels);
   try {
     const raw = window.localStorage.getItem(GUEST_STORAGE_KEY);
-    if (!raw) return emptyGuestState();
+    if (!raw) return emptyGuestState(labels);
     const parsed = JSON.parse(raw) as GuestState;
-    if (!Array.isArray(parsed.people) || !Array.isArray(parsed.expenses)) return emptyGuestState();
+    if (!Array.isArray(parsed.people) || !Array.isArray(parsed.expenses)) return emptyGuestState(labels);
     return parsed;
   } catch {
-    return emptyGuestState();
+    return emptyGuestState(labels);
   }
 }
 
@@ -70,13 +75,13 @@ export type GuestResult = {
   debts: Debt[];
   totalCents: number;
   perExpense: Map<string, { personId: string; oweCents: number }[]>;
-  errors: { expenseId: string; message: string }[];
+  errors: { expenseId: string; template: string; params: Record<string, string | number> }[];
 };
 
 export function computeGuestResult(state: GuestState): GuestResult {
   const rows: { userId: string; paidCents: number; oweCents: number; currency: string }[] = [];
   const perExpense = new Map<string, { personId: string; oweCents: number }[]>();
-  const errors: { expenseId: string; message: string }[] = [];
+  const errors: { expenseId: string; template: string; params: Record<string, string | number> }[] = [];
   let totalCents = 0;
 
   for (const expense of state.expenses) {
@@ -94,10 +99,11 @@ export function computeGuestResult(state: GuestState): GuestResult {
         rows.push({ userId: share.userId, paidCents: 0, oweCents: share.oweCents, currency: state.currency });
       }
     } catch (error) {
-      errors.push({
-        expenseId: expense.id,
-        message: error instanceof SplitError ? error.message : "Aufteilung nicht möglich.",
-      });
+      errors.push(
+        error instanceof SplitError
+          ? { expenseId: expense.id, template: error.template, params: error.params }
+          : { expenseId: expense.id, template: "Aufteilung nicht möglich.", params: {} },
+      );
     }
   }
 

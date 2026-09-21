@@ -4,8 +4,11 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, registrationOpen } from "@/lib/auth";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { LoginForm } from "./login-form";
+import { getT } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Anmelden" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("Anmelden") };
+}
 
 export default async function LoginPage({
   searchParams,
@@ -15,6 +18,7 @@ export default async function LoginPage({
   const user = await getCurrentUser();
   if (user) redirect("/uebersicht");
   const { next, fehler } = await searchParams;
+  const t = await getT();
 
   return (
     <div className="space-y-6">
@@ -24,9 +28,9 @@ export default async function LoginPage({
         </p>
       </div>
       <div>
-        <h1 className="text-2xl font-bold">Willkommen zurück</h1>
+        <h1 className="text-2xl font-bold">{t("Willkommen zurück")}</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Melde dich an, um deine Gruppen und Salden zu sehen.
+          {t("Melde dich an, um deine Gruppen und Salden zu sehen.")}
         </p>
       </div>
       {fehler && (
@@ -38,24 +42,24 @@ export default async function LoginPage({
       <OAuthButtons next={next ?? "/uebersicht"} />
       {registrationOpen() && (
         <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-          Noch kein Konto?{" "}
+          {t("Noch kein Konto?")}{" "}
           <Link href="/registrieren" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">
-            Kostenlos registrieren
+            {t("Kostenlos registrieren")}
           </Link>
         </p>
       )}
 
       <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center dark:border-slate-700">
-        <p className="text-sm font-medium">Du brauchst gar kein Konto</p>
+        <p className="text-sm font-medium">{t("Du brauchst gar kein Konto")}</p>
         <p className="hint mt-1">
-          Gemeinsam abrechnen geht über einen Link, allein nachrechnen direkt im Browser.
+          {t("Gemeinsam abrechnen geht über einen Link, allein nachrechnen direkt im Browser.")}
         </p>
         <div className="mt-3 grid gap-2">
           <Link href="/gemeinsam/start" className="btn-secondary w-full">
-            Gemeinsame Abrechnung anlegen
+            {t("Gemeinsame Abrechnung anlegen")}
           </Link>
           <Link href="/rechner" className="btn-ghost w-full">
-            Allein ausrechnen
+            {t("Allein ausrechnen")}
           </Link>
         </div>
       </div>

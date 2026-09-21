@@ -17,8 +17,11 @@ import {
   CarryOverForm,
   PublicSharingForm,
 } from "./forms";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Gruppeneinstellungen" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getI18n()).t("Gruppeneinstellungen") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function GroupSettingsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -45,18 +48,21 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
     return [...perCurrency.entries()].filter(([, v]) => v !== 0);
   };
 
+  const { t, intlLocale } = await getI18n();
   const isOwner = group.members.find((m) => m.userId === user.id)?.role === "owner";
   const inviteUrl = `${await baseUrl()}/beitreten/${group.inviteToken}`;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Link href={`/gruppen/${group.id}`} className="text-sm text-slate-500 hover:underline dark:text-slate-400">
-        ← Zurück zur Gruppe
+        ← {t("Zurück zur Gruppe")}
       </Link>
-      <h1 className="text-2xl font-bold">Einstellungen · {group.name}</h1>
+      <h1 className="text-2xl font-bold">
+        {t("Einstellungen")} · {group.name}
+      </h1>
 
       <section className="card p-5">
-        <h2 className="mb-4 font-semibold">Allgemein</h2>
+        <h2 className="mb-4 font-semibold">{t("Allgemein")}</h2>
         <GroupSettingsForm
           group={{
             id: group.id,
@@ -69,9 +75,11 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-2 font-semibold">Einladungslink</h2>
+        <h2 className="mb-2 font-semibold">{t("Einladungslink")}</h2>
         <p className="hint mb-3">
-          Alle mit diesem Link können der Gruppe beitreten. Teile ihn nur mit Personen, die dazugehören sollen.
+          {t(
+            "Alle mit diesem Link können der Gruppe beitreten. Teile ihn nur mit Personen, die dazugehören sollen.",
+          )}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <input readOnly value={inviteUrl} className="input flex-1 min-w-[16rem] font-mono text-xs" />
@@ -83,7 +91,7 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-4 font-semibold">Mitglieder</h2>
+        <h2 className="mb-4 font-semibold">{t("Mitglieder")}</h2>
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">
           {group.members.map((member) => {
             const balances = balanceOf(member.userId);
@@ -92,16 +100,16 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
                 <Avatar user={member.user} size={34} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">
-                    {member.userId === user.id ? "Du" : member.user.name}
-                    {member.role === "owner" && <span className="chip ml-2">Verwaltung</span>}
+                    {member.userId === user.id ? t("Du") : member.user.name}
+                    {member.role === "owner" && <span className="chip ml-2">{t("Verwaltung")}</span>}
                   </span>
                   <span className="hint block truncate">
-                    {member.user.isGuest ? "ohne Konto" : member.user.email}
+                    {member.user.isGuest ? t("ohne Konto") : member.user.email}
                   </span>
                 </span>
                 <span className="text-right text-sm">
                   {balances.length === 0 ? (
-                    <span className="hint">ausgeglichen</span>
+                    <span className="hint">{t("ausgeglichen")}</span>
                   ) : (
                     balances.map(([currency, value]) => (
                       <span
@@ -109,7 +117,7 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
                         className={`block font-semibold tabular-nums ${value > 0 ? "positive" : "negative"}`}
                       >
                         {value > 0 ? "+" : "−"}
-                        {formatMoney(Math.abs(value), currency)}
+                        {formatMoney(Math.abs(value), currency, intlLocale)}
                       </span>
                     ))
                   )}
@@ -118,11 +126,11 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
                   <ConfirmForm
                     action={leaveGroupAction}
                     hidden={{ groupId: group.id, userId: member.userId }}
-                    confirm={`${member.user.name} wirklich aus der Gruppe entfernen?`}
+                    confirm={t("{name} wirklich aus der Gruppe entfernen?", { name: member.user.name })}
                     className="btn-ghost !px-2 !py-1 text-xs"
                     pendingLabel="…"
                   >
-                    Entfernen
+                    {t("Entfernen")}
                   </ConfirmForm>
                 )}
               </li>
@@ -136,11 +144,13 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-1 font-semibold">Ohne Konto mitarbeiten lassen</h2>
+        <h2 className="mb-1 font-semibold">{t("Ohne Konto mitarbeiten lassen")}</h2>
         <p className="hint mb-3">
           {group.publicToken
-            ? "Alle mit diesem Link können Ausgaben eintragen und den Stand sehen, ohne sich anzumelden."
-            : "Wenn nicht alle ein Konto anlegen möchten: Mit einem gemeinsamen Link kann jede Person mitarbeiten, die ihn hat."}
+            ? t("Alle mit diesem Link können Ausgaben eintragen und den Stand sehen, ohne sich anzumelden.")
+            : t(
+                "Wenn nicht alle ein Konto anlegen möchten: Mit einem gemeinsamen Link kann jede Person mitarbeiten, die ihn hat.",
+              )}
         </p>
         {group.publicToken && (
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -156,43 +166,45 @@ export default async function GroupSettingsPage({ params }: { params: Promise<{ 
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-1 font-semibold">Fortsetzen</h2>
+        <h2 className="mb-1 font-semibold">{t("Fortsetzen")}</h2>
         <p className="hint mb-4">
-          Für dieselben Leute weitermachen, ohne alles Alte mitzuschleppen: Die offenen Beträge
-          werden hier glattgestellt und erscheinen in der neuen Gruppe als Übertrag. Niemand verliert
-          dadurch einen Anspruch, und beide Abrechnungen bleiben für sich nachvollziehbar.
+          {t(
+            "Für dieselben Leute weitermachen, ohne alles Alte mitzuschleppen: Die offenen Beträge werden hier glattgestellt und erscheinen in der neuen Gruppe als Übertrag. Niemand verliert dadurch einen Anspruch, und beide Abrechnungen bleiben für sich nachvollziehbar.",
+          )}
         </p>
         <CarryOverForm groupId={group.id} groupName={group.name} />
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-1 font-semibold">Archiv</h2>
+        <h2 className="mb-1 font-semibold">{t("Archiv")}</h2>
         <p className="hint mb-3">
           {group.archivedAt
-            ? "Diese Gruppe liegt im Archiv. Sie ist weiterhin nutzbar und zählt zu den Salden."
-            : "Abgeschlossene Abrechnungen kannst du archivieren: Sie verschwinden aus der Gruppenliste, bleiben aber vollständig erhalten und zählen weiter zu den Salden."}
+            ? t("Diese Gruppe liegt im Archiv. Sie ist weiterhin nutzbar und zählt zu den Salden.")
+            : t(
+                "Abgeschlossene Abrechnungen kannst du archivieren: Sie verschwinden aus der Gruppenliste, bleiben aber vollständig erhalten und zählen weiter zu den Salden.",
+              )}
         </p>
         <ArchiveForm groupId={group.id} archived={group.archivedAt !== null} />
       </section>
 
       <section className="card space-y-4 p-5">
-        <h2 className="font-semibold text-rose-600 dark:text-rose-400">Gefahrenzone</h2>
+        <h2 className="font-semibold text-rose-600 dark:text-rose-400">{t("Gefahrenzone")}</h2>
         <ConfirmForm
           action={leaveGroupAction}
           hidden={{ groupId: group.id, userId: user.id }}
-          confirm="Möchtest du die Gruppe wirklich verlassen?"
+          confirm={t("Möchtest du die Gruppe wirklich verlassen?")}
           className="btn-secondary"
         >
-          Gruppe verlassen
+          {t("Gruppe verlassen")}
         </ConfirmForm>
         {isOwner && (
           <ConfirmForm
             action={deleteGroupAction}
             hidden={{ groupId: group.id }}
-            confirm="Die Gruppe und alle darin erfassten Ausgaben werden endgültig gelöscht. Fortfahren?"
+            confirm={t("Die Gruppe und alle darin erfassten Ausgaben werden endgültig gelöscht. Fortfahren?")}
             className="btn-danger"
           >
-            Gruppe endgültig löschen
+            {t("Gruppe endgültig löschen")}
           </ConfirmForm>
         )}
       </section>

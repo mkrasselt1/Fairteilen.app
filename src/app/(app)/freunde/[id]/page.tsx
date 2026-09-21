@@ -8,6 +8,7 @@ import { Avatar, EmptyState } from "@/components/ui";
 import { ExpenseList } from "@/components/expense-list";
 import { ConfirmForm } from "@/components/forms";
 import { removeFriendAction } from "@/actions/friends";
+import { getI18n } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const user = await requireUser();
   const { id } = await params;
   const detail = await getFriendDetail(user.id, id);
-  return { title: detail?.friend.name ?? "Kontakt" };
+  return { title: detail?.friend.name ?? (await getI18n()).t("Kontakt") };
 }
 
 export default async function FriendPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,6 +27,7 @@ export default async function FriendPage({ params }: { params: Promise<{ id: str
   const detail = await getFriendDetail(user.id, id);
   if (!detail) notFound();
   const { friend, expenses, balances } = detail;
+  const { t, intlLocale } = await getI18n();
 
   return (
     <div className="space-y-6">
@@ -35,37 +37,37 @@ export default async function FriendPage({ params }: { params: Promise<{ id: str
             <Avatar user={friend} size={48} />
             <div>
               <h1 className="text-xl font-bold">{friend.name}</h1>
-              <p className="hint">{friend.isGuest ? "Person ohne Konto" : friend.email}</p>
+              <p className="hint">{friend.isGuest ? t("Person ohne Konto") : friend.email}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={`/ausgaben/neu?freund=${friend.id}`} className="btn-primary">
-              Ausgabe hinzufügen
+              {t("Ausgabe hinzufügen")}
             </Link>
             <Link href={`/begleichen?person=${friend.id}`} className="btn-secondary">
-              Begleichen
+              {t("Begleichen")}
             </Link>
           </div>
         </div>
 
         <div className="mt-4 border-t border-slate-100 pt-4 text-sm dark:border-slate-800">
           {balances.length === 0 ? (
-            <p className="text-slate-500 dark:text-slate-400">Ihr seid quitt 🎉</p>
+            <p className="text-slate-500 dark:text-slate-400">{t("Ihr seid quitt 🎉")}</p>
           ) : (
             balances.map((balance) => (
               <p key={balance.currency}>
                 {balance.amountCents > 0 ? (
                   <>
-                    <strong>{friend.name}</strong> schuldet dir{" "}
+                    <strong>{friend.name}</strong> {t("schuldet dir")}{" "}
                     <span className="positive font-semibold">
-                      {formatMoney(balance.amountCents, balance.currency)}
+                      {formatMoney(balance.amountCents, balance.currency, intlLocale)}
                     </span>
                   </>
                 ) : (
                   <>
-                    Du schuldest <strong>{friend.name}</strong>{" "}
+                    {t("Du schuldest")} <strong>{friend.name}</strong>{" "}
                     <span className="negative font-semibold">
-                      {formatMoney(-balance.amountCents, balance.currency)}
+                      {formatMoney(-balance.amountCents, balance.currency, intlLocale)}
                     </span>
                   </>
                 )}
@@ -76,13 +78,13 @@ export default async function FriendPage({ params }: { params: Promise<{ id: str
       </section>
 
       <section className="card overflow-hidden">
-        <h2 className="px-4 py-3 font-semibold">Gemeinsame Ausgaben</h2>
+        <h2 className="px-4 py-3 font-semibold">{t("Gemeinsame Ausgaben")}</h2>
         {expenses.length === 0 ? (
           <EmptyState
             icon="🧾"
-            title="Noch nichts geteilt"
-            description="Sobald ihr eine Ausgabe gemeinsam erfasst, erscheint sie hier."
-            action={{ href: `/ausgaben/neu?freund=${friend.id}`, label: "Ausgabe hinzufügen" }}
+            title={t("Noch nichts geteilt")}
+            description={t("Sobald ihr eine Ausgabe gemeinsam erfasst, erscheint sie hier.")}
+            action={{ href: `/ausgaben/neu?freund=${friend.id}`, label: t("Ausgabe hinzufügen") }}
           />
         ) : (
           <ExpenseList expenses={expenses} currentUserId={user.id} showGroup />
@@ -93,10 +95,10 @@ export default async function FriendPage({ params }: { params: Promise<{ id: str
         <ConfirmForm
           action={removeFriendAction}
           hidden={{ friendId: friend.id }}
-          confirm={`${friend.name} aus der Kontaktliste entfernen?`}
+          confirm={t("{name} aus der Kontaktliste entfernen?", { name: friend.name })}
           className="btn-secondary"
         >
-          Kontakt entfernen
+          {t("Kontakt entfernen")}
         </ConfirmForm>
       </section>
     </div>

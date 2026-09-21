@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { LanguageSwitch } from "@/components/language-switch";
+import { getT } from "@/lib/i18n-server";
+import { AUTH_BULLETS } from "@/lib/texte";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const t = await getT();
+
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
       <section className="hidden flex-col justify-between bg-brand-600 p-10 text-white lg:flex">
@@ -9,37 +14,31 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
         <div className="space-y-6">
           <h1 className="text-4xl font-bold leading-tight">
-            Gemeinsame Ausgaben,
+            {t("Gemeinsame Ausgaben,")}
             <br />
-            fair geteilt.
+            {t("fair geteilt.")}
           </h1>
           <p className="text-brand-50">
-            Ein Konto ist freiwillig – es bündelt nur alle Abrechnungen an einem Ort und auf jedem
-            Gerät. Gemeinsam abrechnen geht auch ganz ohne.
+            {t(
+              "Ein Konto ist freiwillig – es bündelt nur alle Abrechnungen an einem Ort und auf jedem Gerät. Gemeinsam abrechnen geht auch ganz ohne.",
+            )}
           </p>
           <ul className="space-y-3 text-brand-50">
-            {[
-              "Gruppen für WG, Reise, Paar oder Projekt",
-              "Gleich, exakt, prozentual, nach Anteilen oder mit Zu- und Abschlägen aufteilen",
-              "Mehrere Zahlende pro Ausgabe und beliebige Währungen",
-              "Schulden automatisch vereinfachen und mit einem Klick begleichen",
-              "Wiederkehrende Ausgaben, Kommentare, Aktivitätsverlauf, CSV-Export",
-              "Kostenlos, quelloffen und selbst hostbar – keine Werbung, kein Abo",
-              "Gemeinsam abrechnen über einen Link – ganz ohne Konto",
-            ].map((item) => (
+            {AUTH_BULLETS.map((item) => (
               <li key={item} className="flex gap-3">
                 <span aria-hidden>✓</span>
-                <span>{item}</span>
+                <span>{t(item)}</span>
               </li>
             ))}
           </ul>
         </div>
         <p className="text-sm text-brand-100">
-          Freie Software unter MIT-Lizenz. Deine Daten bleiben auf deiner Instanz.
+          {t("Freie Software unter MIT-Lizenz. Deine Daten bleiben auf deiner Instanz.")}
         </p>
       </section>
-      <section className="flex items-center justify-center p-6">
+      <section className="flex flex-col items-center justify-center gap-6 p-6">
         <div className="w-full max-w-sm">{children}</div>
+        <LanguageSwitch />
       </section>
     </div>
   );

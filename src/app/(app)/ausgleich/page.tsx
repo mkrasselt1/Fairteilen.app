@@ -4,8 +4,11 @@ import { requireUser } from "@/lib/auth";
 import { getSettlementOverview } from "@/lib/data";
 import { formatMoney } from "@/lib/money";
 import { Avatar, EmptyState } from "@/components/ui";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Ausgleich" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getI18n()).t("Ausgleich") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function SettlementPage() {
@@ -15,14 +18,16 @@ export default async function SettlementPage() {
   const youOwe = entries.filter((entry) => entry.totals.some((total) => total.amountCents < 0));
   const owedToYou = entries.filter((entry) => entry.totals.every((total) => total.amountCents > 0));
   const transfers = entries.reduce((count, entry) => count + entry.totals.length, 0);
+  const { t, intlLocale } = await getI18n();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Ausgleich</h1>
+        <h1 className="text-2xl font-bold">{t("Ausgleich")}</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Alle offenen Beträge über sämtliche Gruppen hinweg, je Person zusammengefasst. Wer in
-          mehreren Gruppen mit dir abrechnet, taucht hier nur einmal auf.
+          {t(
+            "Alle offenen Beträge über sämtliche Gruppen hinweg, je Person zusammengefasst. Wer in mehreren Gruppen mit dir abrechnet, taucht hier nur einmal auf.",
+          )}
         </p>
       </div>
 
@@ -30,19 +35,23 @@ export default async function SettlementPage() {
         <div className="card">
           <EmptyState
             icon="🎉"
-            title="Alles ausgeglichen"
-            description="Es sind keine offenen Beträge vorhanden – weder in deinen Gruppen noch außerhalb."
+            title={t("Alles ausgeglichen")}
+            description={t(
+              "Es sind keine offenen Beträge vorhanden – weder in deinen Gruppen noch außerhalb.",
+            )}
           />
         </div>
       ) : (
         <>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            {transfers === 1 ? "Eine Zahlung bringt" : `${transfers} Zahlungen bringen`} alles ins Reine.
+            {transfers === 1
+              ? t("Eine Zahlung bringt alles ins Reine.")
+              : t("{anzahl} Zahlungen bringen alles ins Reine.", { anzahl: transfers })}
           </p>
 
           {[
-            { title: "Du zahlst", list: youOwe, empty: null },
-            { title: "Du bekommst", list: owedToYou, empty: null },
+            { title: t("Du zahlst"), list: youOwe, empty: null },
+            { title: t("Du bekommst"), list: owedToYou, empty: null },
           ].map((section) =>
             section.list.length === 0 ? null : (
               <section key={section.title}>
@@ -62,7 +71,7 @@ export default async function SettlementPage() {
                             {entry.person.name}
                           </Link>
                           <span className="hint block truncate">
-                            {entry.person.isGuest ? "ohne Konto" : entry.person.email}
+                            {entry.person.isGuest ? t("ohne Konto") : entry.person.email}
                           </span>
                         </div>
                         <div className="text-right">
@@ -71,7 +80,7 @@ export default async function SettlementPage() {
                               <span
                                 className={`text-lg font-bold ${total.amountCents > 0 ? "positive" : "negative"}`}
                               >
-                                {formatMoney(Math.abs(total.amountCents), total.currency)}
+                                {formatMoney(Math.abs(total.amountCents), total.currency, intlLocale)}
                               </span>
                             </p>
                           ))}
@@ -90,7 +99,9 @@ export default async function SettlementPage() {
                             })}`}
                             className="btn-secondary !px-3 !py-1.5 text-xs"
                           >
-                            {formatMoney(Math.abs(total.amountCents), total.currency)} begleichen
+                            {t("{betrag} begleichen", {
+                              betrag: formatMoney(Math.abs(total.amountCents), total.currency, intlLocale),
+                            })}
                           </Link>
                         ))}
                       </div>
@@ -98,7 +109,7 @@ export default async function SettlementPage() {
                       {entry.sources.length > 1 && (
                         <details className="mt-3">
                           <summary className="cursor-pointer text-xs text-slate-500 dark:text-slate-400">
-                            Woraus setzt sich das zusammen?
+                            {t("Woraus setzt sich das zusammen?")}
                           </summary>
                           <ul className="mt-2 space-y-1">
                             {entry.sources.map((source, index) => (
@@ -118,7 +129,7 @@ export default async function SettlementPage() {
                                   }`}
                                 >
                                   {source.amountCents > 0 ? "+" : "−"}
-                                  {formatMoney(Math.abs(source.amountCents), source.currency)}
+                                  {formatMoney(Math.abs(source.amountCents), source.currency, intlLocale)}
                                 </span>
                               </li>
                             ))}
@@ -133,9 +144,9 @@ export default async function SettlementPage() {
           )}
 
           <p className="hint">
-            Innerhalb einer Gruppe werden Schulden weiterhin zusammengefasst. Über Gruppen hinweg
-            wird bewusst nicht über Dritte umgeleitet – eine Überweisung an jemanden, mit dem du nie
-            etwas geteilt hast, wäre schwer nachvollziehbar.
+            {t(
+              "Innerhalb einer Gruppe werden Schulden weiterhin zusammengefasst. Über Gruppen hinweg wird bewusst nicht über Dritte umgeleitet – eine Überweisung an jemanden, mit dem du nie etwas geteilt hast, wäre schwer nachvollziehbar.",
+            )}
           </p>
         </>
       )}

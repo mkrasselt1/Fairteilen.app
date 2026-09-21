@@ -13,7 +13,7 @@ kostet nichts und braucht keinen Entwicklerzugang – die anderen beiden führen
 
 ## Weg 1: Ohne alles – als PWA installieren
 
-Das ist bereits eingerichtet ([`public/manifest.webmanifest`](../public/manifest.webmanifest)).
+Das ist bereits eingerichtet ([`src/app/manifest.ts`](../src/app/manifest.ts)) – das Manifest wird in der erkannten Sprache ausgeliefert.
 
 - **Android/Chrome:** Menü → *App installieren*
 - **iOS/Safari:** Teilen → *Zum Home-Bildschirm*

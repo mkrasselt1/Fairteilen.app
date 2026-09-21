@@ -1,11 +1,17 @@
+"use client";
+
 import { formatMoney } from "@/lib/money";
 import { colorForId } from "@/lib/format";
 import type { SplitAnalysis } from "@/lib/split-ui";
 import type { SplitType } from "@/lib/split";
+import { useIntlLocale, useT } from "@/components/i18n";
 
-function formatPercent(bps: number): string {
+function formatPercent(bps: number, intlLocale: string): string {
   const percent = bps / 100;
-  return `${(Number.isInteger(percent) ? String(percent) : percent.toFixed(2)).replace(".", ",")} %`;
+  return `${new Intl.NumberFormat(intlLocale, {
+    minimumFractionDigits: Number.isInteger(percent) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(percent)} %`;
 }
 
 /**
@@ -29,10 +35,13 @@ export function SplitAllocationBar({
   percentBps: number;
   totalShares: number;
 }) {
+  const t = useT();
+  const intlLocale = useIntlLocale();
+
   if (analysis.state === "empty") {
     return (
       <p className="hint" role="status">
-        Betrag eingeben und Personen auswählen – die Aufteilung erscheint dann hier.
+        {t("Betrag eingeben und Personen auswählen – die Aufteilung erscheint dann hier.")}
       </p>
     );
   }
@@ -43,21 +52,25 @@ export function SplitAllocationBar({
 
   const status =
     analysis.state === "ok"
-      ? { tone: "positive", text: "Genau aufgeteilt" }
+      ? { tone: "positive", text: t("Genau aufgeteilt") }
       : analysis.state === "under"
         ? {
             tone: "text-amber-600 dark:text-amber-400",
-            text:
-              splitType === "percent"
-                ? `Es fehlen noch ${formatPercent(10000 - percentBps)}`
-                : `Es fehlen noch ${formatMoney(analysis.remainingCents, currency)}`,
+            text: t("Es fehlen noch {rest}", {
+              rest:
+                splitType === "percent"
+                  ? formatPercent(10000 - percentBps, intlLocale)
+                  : formatMoney(analysis.remainingCents, currency, intlLocale),
+            }),
           }
         : {
             tone: "negative",
-            text:
-              splitType === "percent"
-                ? `${formatPercent(percentBps - 10000)} zu viel`
-                : `${formatMoney(-analysis.remainingCents, currency)} zu viel`,
+            text: t("{zuviel} zu viel", {
+              zuviel:
+                splitType === "percent"
+                  ? formatPercent(percentBps - 10000, intlLocale)
+                  : formatMoney(-analysis.remainingCents, currency, intlLocale),
+            }),
           };
 
   return (
@@ -78,7 +91,7 @@ export function SplitAllocationBar({
                 width: `${(cents / scale) * 100}%`,
                 backgroundColor: person.avatarColor || colorForId(person.id),
               }}
-              title={`${person.name}: ${formatMoney(cents, currency)}`}
+              title={`${person.name}: ${formatMoney(cents, currency, intlLocale)}`}
             />
           );
         })}
@@ -99,10 +112,17 @@ export function SplitAllocationBar({
         </span>
         <span className="hint tabular-nums">
           {splitType === "percent"
-            ? `${formatPercent(percentBps)} von 100 %`
+            ? t("{prozent} von 100 %", { prozent: formatPercent(percentBps, intlLocale) })
             : splitType === "shares"
-              ? `${totalShares} ${totalShares === 1 ? "Anteil" : "Anteile"} · ${formatMoney(amountCents, currency)}`
-              : `${formatMoney(analysis.allocatedCents, currency)} von ${formatMoney(amountCents, currency)}`}
+              ? `${
+                  totalShares === 1
+                    ? t("{anzahl} Anteil", { anzahl: totalShares })
+                    : t("{anzahl} Anteile", { anzahl: totalShares })
+                } · ${formatMoney(amountCents, currency, intlLocale)}`
+              : t("{verteilt} von {gesamt}", {
+                  verteilt: formatMoney(analysis.allocatedCents, currency, intlLocale),
+                  gesamt: formatMoney(amountCents, currency, intlLocale),
+                })}
         </span>
       </div>
     </div>

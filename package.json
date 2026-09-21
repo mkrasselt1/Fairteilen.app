@@ -13,6 +13,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --test --experimental-strip-types --conditions=react-server \"tests/**/*.test.ts\"",
+    "i18n": "node --experimental-strip-types --no-warnings scripts/i18n-pruefen.mjs",
     "test:e2e": "node tests/e2e.mjs",
     "db:push": "node scripts/db-sync.mjs",
     "db:push:force": "prisma db push --accept-data-loss",

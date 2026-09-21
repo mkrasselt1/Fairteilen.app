@@ -6,20 +6,16 @@ import { useState } from "react";
 import { Avatar } from "./ui";
 import { ThemeToggle } from "./theme-toggle";
 import { logoutAction } from "@/actions/auth";
-
-const LINKS = [
-  { href: "/uebersicht", label: "Übersicht", icon: "🏠" },
-  { href: "/gruppen", label: "Gruppen", icon: "👥" },
-  { href: "/freunde", label: "Freunde", icon: "🧑‍🤝‍🧑" },
-  { href: "/aktivitaet", label: "Aktivität", icon: "🔔" },
-  { href: "/konto", label: "Konto", icon: "⚙️" },
-];
+import { useT } from "@/components/i18n";
+import { LanguageSwitch } from "@/components/language-switch";
+import { NAV_LINKS as LINKS } from "@/lib/texte";
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/uebersicht" ? pathname === "/uebersicht" : pathname.startsWith(href);
 }
 
 export function TopBar({ user }: { user: { id: string; name: string; email: string; avatarColor: string } }) {
+  const t = useT();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -42,14 +38,14 @@ export function TopBar({ user }: { user: { id: string; name: string; email: stri
                   : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
               }`}
             >
-              {link.label}
+              {t(link.label)}
             </Link>
           ))}
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
           <Link href="/ausgaben/neu" className="btn-primary hidden !px-3 !py-1.5 sm:inline-flex">
-            + Ausgabe
+            {t("+ Ausgabe")}
           </Link>
           <ThemeToggle />
           <div className="relative">
@@ -59,7 +55,7 @@ export function TopBar({ user }: { user: { id: string; name: string; email: stri
               className="flex items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="Kontomenü"
+              aria-label={t("Kontomenü")}
             >
               <Avatar user={user} size={32} />
             </button>
@@ -76,23 +72,27 @@ export function TopBar({ user }: { user: { id: string; name: string; email: stri
                     onClick={() => setMenuOpen(false)}
                     className="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
-                    Konto & Einstellungen
+                    {t("Konto & Einstellungen")}
                   </Link>
                   <Link
                     href="/export"
                     onClick={() => setMenuOpen(false)}
                     className="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
-                    Daten exportieren
+                    {t("Daten exportieren")}
                   </Link>
                   <form action={logoutAction}>
                     <button
                       type="submit"
                       className="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-slate-100 dark:text-rose-400 dark:hover:bg-slate-800"
                     >
-                      Abmelden
+                      {t("Abmelden")}
                     </button>
                   </form>
+                  <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-2 dark:border-slate-800">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{t("Sprache")}</span>
+                    <LanguageSwitch />
+                  </div>
                 </div>
               </>
             )}
@@ -104,6 +104,7 @@ export function TopBar({ user }: { user: { id: string; name: string; email: stri
 }
 
 export function BottomNav() {
+  const t = useT();
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden dark:border-slate-800 dark:bg-slate-950/95">
@@ -121,7 +122,7 @@ export function BottomNav() {
             <span aria-hidden className="text-lg">
               {link.icon}
             </span>
-            {link.label}
+            {t(link.label)}
           </Link>
         ))}
       </div>
@@ -130,6 +131,7 @@ export function BottomNav() {
 }
 
 export function FloatingAddButton() {
+  const t = useT();
   const pathname = usePathname();
   // Im Ausgabenformular selbst wäre der Knopf überflüssig und würde auf schmalen
   // Bildschirmen die Eingabefelder überdecken.
@@ -141,7 +143,7 @@ export function FloatingAddButton() {
     <Link
       href="/ausgaben/neu"
       className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-3xl font-light text-white shadow-lg transition hover:bg-brand-600 sm:hidden"
-      aria-label="Ausgabe hinzufügen"
+      aria-label={t("Ausgabe hinzufügen")}
     >
       +
     </Link>

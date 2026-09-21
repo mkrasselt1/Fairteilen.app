@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { fill } from "./i18n.ts";
 
 /**
  * Belege liegen als Dateien auf der Platte – standardmäßig im Ordner `uploads`
@@ -25,7 +26,17 @@ export const ACCEPT_ATTRIBUTE = "image/jpeg,image/png,image/webp,application/pdf
 
 const STORED_NAME_PATTERN = /^[a-f0-9]{32}\.(jpg|png|webp|pdf)$/;
 
-export class UploadError extends Error {}
+/** Wie SplitError: Vorlage und Werte bleiben erhalten, damit übersetzt werden kann. */
+export class UploadError extends Error {
+  readonly template: string;
+  readonly params: Record<string, string | number>;
+
+  constructor(template: string, params: Record<string, string | number> = {}) {
+    super(fill(template, params));
+    this.template = template;
+    this.params = params;
+  }
+}
 
 export function uploadDir(): string {
   return resolve(process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads"));
@@ -70,7 +81,9 @@ export type PreparedUpload = StoredUpload & { buffer: Buffer };
 export async function prepareUpload(file: File): Promise<PreparedUpload> {
   if (file.size === 0) throw new UploadError("Die Datei ist leer.");
   if (file.size > MAX_UPLOAD_BYTES) {
-    throw new UploadError(`Die Datei ist größer als ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`);
+    throw new UploadError("Die Datei ist größer als {grenze} MB.", {
+      grenze: Math.round(MAX_UPLOAD_BYTES / 1024 / 1024),
+    });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

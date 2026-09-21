@@ -1,5 +1,7 @@
 import "server-only";
 import { centsToDecimalString } from "./money";
+import { categoryOf } from "./categories";
+import type { Translate } from "./i18n";
 
 function escapeCell(value: string): string {
   return /[";\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
@@ -22,9 +24,21 @@ type ExportExpense = {
   shares: { paidCents: number; oweCents: number; user: { name: string; email: string | null } }[];
 };
 
-export function expensesToCsv(expenses: ExportExpense[]): string {
+export function expensesToCsv(expenses: ExportExpense[], t: Translate): string {
   const rows: string[][] = [
-    ["Datum", "Gruppe", "Beschreibung", "Kategorie", "Typ", "Betrag", "Währung", "Person", "Bezahlt", "Anteil", "Notiz"],
+    [
+      t("Datum"),
+      t("Gruppe"),
+      t("Beschreibung"),
+      t("Kategorie"),
+      t("Typ"),
+      t("Betrag"),
+      t("Währung"),
+      t("Person"),
+      t("Bezahlt"),
+      t("Anteil"),
+      t("Notiz"),
+    ],
   ];
 
   for (const expense of expenses) {
@@ -33,8 +47,8 @@ export function expensesToCsv(expenses: ExportExpense[]): string {
         expense.date.toISOString().slice(0, 10),
         expense.group?.name ?? "",
         expense.description,
-        expense.category,
-        expense.isPayment ? "Zahlung" : "Ausgabe",
+        t(categoryOf(expense.category).label),
+        expense.isPayment ? t("Zahlung") : t("Ausgabe"),
         centsToDecimalString(expense.amountCents, expense.currency),
         expense.currency,
         share.user.name,

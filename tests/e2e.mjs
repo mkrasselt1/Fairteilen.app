@@ -22,7 +22,10 @@ function check(name, cond, extra = "") {
 const browser = await chromium.launch(
   process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {},
 );
-const page = await browser.newPage();
+// Alle deutschen Prüfungen laufen bewusst in einem deutschen Browser – die
+// Oberfläche richtet sich sonst nach der Sprache des Browsers.
+const ctxMain = await browser.newContext({ locale: "de-DE" });
+const page = await ctxMain.newPage();
 page.on("pageerror", (e) => console.log("  [pageerror]", e.message));
 // Die App darf keine Browserdialoge mehr verwenden – Rückfragen laufen über Modale.
 let nativeDialog = null;
@@ -47,7 +50,7 @@ check("Startseite trägt strukturierte Daten", landingHtml.includes("SoftwareApp
 check("Startseite ist nicht auf noindex", !/name="robots"[^>]*noindex/.test(landingHtml));
 
 // 1c. Gemeinsame Abrechnung ohne Konto
-const ctxLink = await browser.newContext();
+const ctxLink = await browser.newContext({ locale: "de-DE" });
 const gast = await ctxLink.newPage();
 await gast.goto(`${BASE}/gemeinsam/start`);
 await gast.fill("#name", "Linkprobe");
@@ -65,7 +68,7 @@ await gast.getByRole("button", { name: "Ausgabe speichern" }).click();
 await gast.getByText("Benzin").first().waitFor({ timeout: 20000 });
 check("Eintrag ohne Konto möglich", (await gast.innerText("body")).includes("40,00"), "");
 
-const ctxZweit = await browser.newContext();
+const ctxZweit = await browser.newContext({ locale: "de-DE" });
 const zweit = await ctxZweit.newPage();
 await zweit.goto(boardUrl);
 await zweit.locator('input[name="personId"]').nth(1).check();
@@ -95,7 +98,7 @@ await page.goto(`${groupUrl}/einstellungen`);
 const invite = await page.locator('section input[readonly]').first().inputValue();
 check("Einladungslink vorhanden", invite.includes("/beitreten/"), invite);
 
-const ctx2 = await browser.newContext();
+const ctx2 = await browser.newContext({ locale: "de-DE" });
 const page2 = await ctx2.newPage();
 await page2.goto(`${BASE}/registrieren`);
 await page2.fill("#name", "Testerin Zwei");
@@ -176,6 +179,40 @@ await page.goto(`${BASE}/uebersicht`);
 await page.getByLabel("Dunkles Design").click();
 await page.waitForTimeout(200);
 check("Dunkles Design umschaltbar", await page.evaluate(() => document.documentElement.classList.contains("dark")));
+
+// 11. Zweite Sprache: Browsersprache erkennen, Wahl merken
+const ctxEn = await browser.newContext({ locale: "en-US" });
+const enPage = await ctxEn.newPage();
+await enPage.goto(`${BASE}/`);
+const enBody = await enPage.innerText("body");
+check("Englische Browsersprache wird erkannt", enBody.includes("Shared expenses"), enBody.slice(0, 200));
+check(
+  "html trägt die erkannte Sprache",
+  (await enPage.getAttribute("html", "lang")) === "en",
+  String(await enPage.getAttribute("html", "lang")),
+);
+check("Keine deutschen Reste auf der Startseite", !enBody.includes("Häufige Fragen"), enBody.slice(0, 200));
+
+await enPage.goto(`${BASE}/rechner`);
+const enRechner = await enPage.innerText("body");
+check("Rechner spricht Englisch", enRechner.includes("Quick split") && enRechner.includes("Result"), enRechner.slice(0, 200));
+
+// Umschalten auf Deutsch – und die Wahl überlebt den Seitenwechsel
+await enPage.getByRole("link", { name: /^DE/ }).first().click();
+await enPage.waitForTimeout(500);
+check("Umschalten auf Deutsch wirkt", (await enPage.innerText("body")).includes("Schnell-Abrechnung"));
+await enPage.goto(`${BASE}/`);
+check(
+  "Die gewählte Sprache bleibt erhalten",
+  (await enPage.innerText("body")).includes("Häufige Fragen"),
+  (await enPage.innerText("body")).slice(0, 200),
+);
+
+// Deutsche Browsersprache bleibt deutsch
+const ctxDe = await browser.newContext({ locale: "de-DE" });
+const dePage = await ctxDe.newPage();
+await dePage.goto(`${BASE}/`);
+check("Deutsche Browsersprache bleibt deutsch", (await dePage.innerText("body")).includes("Häufige Fragen"));
 
 check("keine Browserdialoge verwendet", nativeDialog === null, String(nativeDialog));
 

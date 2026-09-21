@@ -4,20 +4,22 @@ import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { ActionState } from "@/lib/action-state";
 import { ConfirmDialog, Modal } from "@/components/modal";
+import { useT } from "@/components/i18n";
 
 export function SubmitButton({
   children,
   className = "btn-primary",
-  pendingLabel = "Wird gespeichert …",
+  pendingLabel,
 }: {
   children: React.ReactNode;
   className?: string;
   pendingLabel?: string;
 }) {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={className} disabled={pending}>
-      {pending ? pendingLabel : children}
+      {pending ? (pendingLabel ?? t("Wird gespeichert …")) : children}
     </button>
   );
 }
@@ -42,11 +44,11 @@ export function FormAlert({ state }: { state: ActionState }) {
 export function ConfirmForm({
   action,
   confirm,
-  title = "Bist du sicher?",
+  title,
   hidden,
   className = "btn-danger",
   children,
-  pendingLabel = "Einen Moment …",
+  pendingLabel,
   confirmLabel,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
@@ -58,6 +60,7 @@ export function ConfirmForm({
   pendingLabel?: string;
   confirmLabel?: string;
 }) {
+  const t = useT();
   const [state, formAction] = useActionState(action, null);
   const [open, setOpen] = useState(false);
 
@@ -80,10 +83,10 @@ export function ConfirmForm({
       <ConfirmDialog
         open={open}
         onClose={() => setOpen(false)}
-        title={title}
+        title={title ?? t("Bist du sicher?")}
         description={confirm}
         confirm={
-          <SubmitButton className={className} pendingLabel={pendingLabel}>
+          <SubmitButton className={className} pendingLabel={pendingLabel ?? t("Einen Moment …")}>
             {confirmLabel ?? children}
           </SubmitButton>
         }
@@ -94,7 +97,8 @@ export function ConfirmForm({
   );
 }
 
-export function CopyButton({ value, label = "Link kopieren" }: { value: string; label?: string }) {
+export function CopyButton({ value, label }: { value: string; label?: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const [fallbackOpen, setFallbackOpen] = useState(false);
 
@@ -114,14 +118,14 @@ export function CopyButton({ value, label = "Link kopieren" }: { value: string; 
           }
         }}
       >
-        {copied ? "Kopiert ✓" : label}
+        {copied ? t("Kopiert ✓") : (label ?? t("Link kopieren"))}
       </button>
 
       <Modal
         open={fallbackOpen}
         onClose={() => setFallbackOpen(false)}
-        title="Zum Kopieren markieren"
-        description="Dein Browser erlaubt das automatische Kopieren nicht."
+        title={t("Zum Kopieren markieren")}
+        description={t("Dein Browser erlaubt das automatische Kopieren nicht.")}
       >
         <input
           readOnly
@@ -132,7 +136,7 @@ export function CopyButton({ value, label = "Link kopieren" }: { value: string; 
         />
         <div className="mt-4 flex justify-end">
           <button type="button" className="btn-secondary" onClick={() => setFallbackOpen(false)}>
-            Schließen
+            {t("Schließen")}
           </button>
         </div>
       </Modal>

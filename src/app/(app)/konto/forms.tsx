@@ -12,48 +12,51 @@ import { formatIban, type PaymentDetails } from "@/lib/payment";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { ConfirmDialog } from "@/components/modal";
 import { CURRENCIES } from "@/lib/money";
+import { useT } from "@/components/i18n";
 
 export function ProfileForm({ user }: { user: { name: string; email: string; currency: string } }) {
+  const t = useT();
   const [state, formAction] = useActionState(updateProfileAction, null);
   return (
     <form action={formAction} className="space-y-4">
       <div>
         <label className="label" htmlFor="name">
-          Name
+          {t("Name")}
         </label>
         <input id="name" name="name" defaultValue={user.name} required maxLength={80} className="input" />
       </div>
       <div>
         <label className="label" htmlFor="email">
-          E-Mail-Adresse
+          {t("E-Mail-Adresse")}
         </label>
         <input id="email" name="email" type="email" defaultValue={user.email} required className="input" />
       </div>
       <div>
         <label className="label" htmlFor="currency">
-          Standardwährung
+          {t("Standardwährung")}
         </label>
         <select id="currency" name="currency" defaultValue={user.currency} className="input sm:w-56">
           {CURRENCIES.map((currency) => (
             <option key={currency.code} value={currency.code}>
-              {currency.code} – {currency.name}
+              {currency.code} – {t(currency.name)}
             </option>
           ))}
         </select>
       </div>
       <FormAlert state={state} />
-      <SubmitButton className="btn-primary">Speichern</SubmitButton>
+      <SubmitButton className="btn-primary">{t("Speichern")}</SubmitButton>
     </form>
   );
 }
 
 export function ChangePasswordForm({ hasPassword = true }: { hasPassword?: boolean }) {
+  const t = useT();
   const [state, formAction] = useActionState(changePasswordAction, null);
   return (
     <form action={formAction} className="space-y-4">
       <div>
         <label className="label" htmlFor="current">
-          Aktuelles Passwort {!hasPassword && <span className="hint">(nicht nötig)</span>}
+          {t("Aktuelles Passwort")} {!hasPassword && <span className="hint">{t("(nicht nötig)")}</span>}
         </label>
         <input
           id="current"
@@ -68,7 +71,7 @@ export function ChangePasswordForm({ hasPassword = true }: { hasPassword?: boole
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="next">
-            Neues Passwort
+            {t("Neues Passwort")}
           </label>
           <input
             id="next"
@@ -82,7 +85,7 @@ export function ChangePasswordForm({ hasPassword = true }: { hasPassword?: boole
         </div>
         <div>
           <label className="label" htmlFor="repeat">
-            Wiederholen
+            {t("Wiederholen")}
           </label>
           <input
             id="repeat"
@@ -96,12 +99,15 @@ export function ChangePasswordForm({ hasPassword = true }: { hasPassword?: boole
         </div>
       </div>
       <FormAlert state={state} />
-      <SubmitButton className="btn-secondary">{hasPassword ? "Passwort ändern" : "Passwort setzen"}</SubmitButton>
+      <SubmitButton className="btn-secondary">
+        {hasPassword ? t("Passwort ändern") : t("Passwort setzen")}
+      </SubmitButton>
     </form>
   );
 }
 
 export function DeleteAccountForm({ hasPassword = true }: { hasPassword?: boolean }) {
+  const t = useT();
   const [state, formAction] = useActionState(deleteAccountAction, null);
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -116,23 +122,25 @@ export function DeleteAccountForm({ hasPassword = true }: { hasPassword?: boolea
           type="password"
           required
           className="input sm:w-64"
-          placeholder="Passwort zur Bestätigung"
+          placeholder={t("Passwort zur Bestätigung")}
           autoComplete="current-password"
         />
       )}
       <FormAlert state={state} />
       <button type="button" className="btn-danger" onClick={() => setOpen(true)}>
-        Konto endgültig löschen
+        {t("Konto endgültig löschen")}
       </button>
 
       <ConfirmDialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Konto endgültig löschen?"
-        description="Alle deine Daten werden unwiderruflich entfernt: Profil, Gruppenmitgliedschaften, Ausgaben und Belege. Das lässt sich nicht rückgängig machen."
+        title={t("Konto endgültig löschen?")}
+        description={t(
+          "Alle deine Daten werden unwiderruflich entfernt: Profil, Gruppenmitgliedschaften, Ausgaben und Belege. Das lässt sich nicht rückgängig machen.",
+        )}
         confirm={
-          <SubmitButton className="btn-danger" pendingLabel="Wird gelöscht …">
-            Ja, Konto löschen
+          <SubmitButton className="btn-danger" pendingLabel={t("Wird gelöscht …")}>
+            {t("Ja, Konto löschen")}
           </SubmitButton>
         }
       />
@@ -141,6 +149,7 @@ export function DeleteAccountForm({ hasPassword = true }: { hasPassword?: boolea
 }
 
 export function UnlinkForm({ provider, label }: { provider: string; label: string }) {
+  const t = useT();
   const [state, formAction] = useActionState(unlinkOAuthAction, null);
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -151,17 +160,20 @@ export function UnlinkForm({ provider, label }: { provider: string; label: strin
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="provider" value={provider} />
       <button type="button" className="btn-ghost !px-2 !py-1 text-xs" onClick={() => setOpen(true)}>
-        Trennen
+        {t("Trennen")}
       </button>
 
       <ConfirmDialog
         open={open}
         onClose={() => setOpen(false)}
-        title={`Verknüpfung mit ${label} entfernen?`}
-        description={`Du kannst dich danach nicht mehr über ${label} anmelden. Ein gesetztes Passwort oder ein anderer verknüpfter Anbieter bleibt davon unberührt.`}
+        title={t("Verknüpfung mit {anbieter} entfernen?", { anbieter: label })}
+        description={t(
+          "Du kannst dich danach nicht mehr über {anbieter} anmelden. Ein gesetztes Passwort oder ein anderer verknüpfter Anbieter bleibt davon unberührt.",
+          { anbieter: label },
+        )}
         confirm={
           <SubmitButton className="btn-danger" pendingLabel="…">
-            Verknüpfung entfernen
+            {t("Verknüpfung entfernen")}
           </SubmitButton>
         }
       />
@@ -172,23 +184,24 @@ export function UnlinkForm({ provider, label }: { provider: string; label: strin
 }
 
 export function PaymentDetailsForm({ details }: { details: PaymentDetails }) {
+  const t = useT();
   const [state, formAction] = useActionState(updatePaymentDetailsAction, null);
   return (
     <form action={formAction} className="space-y-4">
       <div>
         <label className="label" htmlFor="weroContact">
-          Wero
+          {t("Wero")}
         </label>
         <input
           id="weroContact"
           name="weroContact"
           defaultValue={details.weroContact ?? ""}
           className="input"
-          placeholder="+49 170 1234567 oder name@example.com"
+          placeholder={t("+49 170 1234567 oder name@example.com")}
           autoComplete="tel"
         />
         <p className="hint mt-1">
-          Handynummer oder E-Mail-Adresse, mit der du Wero in deiner Banking-App nutzt.
+          {t("Handynummer oder E-Mail-Adresse, mit der du Wero in deiner Banking-App nutzt.")}
         </p>
       </div>
       <div>
@@ -206,7 +219,7 @@ export function PaymentDetailsForm({ details }: { details: PaymentDetails }) {
       </div>
       <div>
         <label className="label" htmlFor="paypalEmail">
-          PayPal-Adresse <span className="hint">(optional)</span>
+          {t("PayPal-Adresse")} <span className="hint">{t("(optional)")}</span>
         </label>
         <input
           id="paypalEmail"
@@ -219,7 +232,7 @@ export function PaymentDetailsForm({ details }: { details: PaymentDetails }) {
       </div>
       <div>
         <label className="label" htmlFor="paymentNote">
-          Hinweis <span className="hint">(optional)</span>
+          {t("Hinweis")} <span className="hint">{t("(optional)")}</span>
         </label>
         <textarea
           id="paymentNote"
@@ -228,11 +241,11 @@ export function PaymentDetailsForm({ details }: { details: PaymentDetails }) {
           maxLength={500}
           defaultValue={details.paymentNote ?? ""}
           className="input"
-          placeholder="z. B. „bar ist mir am liebsten“"
+          placeholder={t("z. B. „bar ist mir am liebsten“")}
         />
       </div>
       <FormAlert state={state} />
-      <SubmitButton className="btn-primary">Speichern</SubmitButton>
+      <SubmitButton className="btn-primary">{t("Speichern")}</SubmitButton>
     </form>
   );
 }

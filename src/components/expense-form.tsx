@@ -12,6 +12,8 @@ import { type SplitType } from "@/lib/split";
 import { analyzeSplit, convertSplitValues, formatSplitValue, percentTotalBps } from "@/lib/split-ui";
 import { SplitAllocationBar } from "@/components/split-feedback";
 import { toDateInputValue } from "@/lib/format";
+import { RECURRENCE_OPTIONS, SPLIT_TABS } from "@/lib/texte";
+import { useIntlLocale, useLocale, useT } from "@/components/i18n";
 
 export type PersonOption = {
   id: string;
@@ -44,26 +46,6 @@ export type ExpenseFormInitial = {
   shares: { userId: string; paidCents: number; oweCents: number }[];
 };
 
-const SPLIT_TABS: { id: SplitType; label: string; hint: string }[] = [
-  { id: "equal", label: "Gleich", hint: "Der Betrag wird gleichmäßig auf alle Ausgewählten verteilt." },
-  { id: "exact", label: "Beträge", hint: "Gib für jede Person den genauen Betrag an. Die Summe muss stimmen." },
-  { id: "percent", label: "Prozent", hint: "Verteile den Betrag prozentual – zusammen müssen es 100 % sein." },
-  { id: "shares", label: "Anteile", hint: "Zum Beispiel 2 Anteile für ein Paar und 1 Anteil pro Einzelperson." },
-  {
-    id: "adjustment",
-    label: "Zu-/Abschlag",
-    hint: "Zuerst werden individuelle Zuschläge abgezogen, der Rest wird gleichmäßig geteilt.",
-  },
-];
-
-const RECURRENCE_OPTIONS = [
-  { id: "none", label: "Einmalig" },
-  { id: "daily", label: "Täglich" },
-  { id: "weekly", label: "Wöchentlich" },
-  { id: "monthly", label: "Monatlich" },
-  { id: "yearly", label: "Jährlich" },
-];
-
 function parseValueFor(splitType: SplitType, raw: string, currency: string): number {
   const text = raw.trim();
   if (!text) return splitType === "shares" ? 1 : 0;
@@ -95,6 +77,13 @@ export function ExpenseForm({
   /** Die Gruppe steht fest und lässt sich nicht wechseln. */
   lockGroup?: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const intlLocale = useIntlLocale();
+  /** Auf Deutsch tippt man 12,50 – auf Englisch 12.50. */
+  const decimalSeparator = locale === "de" ? "," : ".";
+  const amountPlaceholder = `0${decimalSeparator}00`;
+
   const [state, formAction] = useActionState(saveExpenseAction, null);
 
   const [groupId, setGroupId] = useState<string>(initial?.groupId ?? defaultGroupId ?? "");
@@ -102,7 +91,7 @@ export function ExpenseForm({
     initial?.currency ?? groups.find((g) => g.id === defaultGroupId)?.currency ?? defaultCurrency,
   );
   const [amountText, setAmountText] = useState<string>(
-    initial ? (initial.amountCents / 100).toFixed(2).replace(".", ",") : "",
+    initial ? (initial.amountCents / 100).toFixed(2).replace(".", locale === "de" ? "," : ".") : "",
   );
   const [splitType, setSplitType] = useState<SplitType>(initial?.splitType ?? "equal");
   const [payerMode, setPayerMode] = useState<"single" | "multiple">(
@@ -219,7 +208,7 @@ export function ExpenseForm({
     });
   }
 
-  const activeTab = SPLIT_TABS.find((t) => t.id === splitType)!;
+  const activeTab = SPLIT_TABS.find((tab) => tab.id === splitType)!;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -235,7 +224,7 @@ export function ExpenseForm({
       <section className="card space-y-4 p-5">
         <div>
           <label className="label" htmlFor="description">
-            Wofür?
+            {t("Wofür?")}
           </label>
           <input
             id="description"
@@ -244,14 +233,14 @@ export function ExpenseForm({
             maxLength={120}
             defaultValue={initial?.description ?? ""}
             className="input"
-            placeholder="z. B. Einkauf, Miete, Kinotickets"
+            placeholder={t("z. B. Einkauf, Miete, Kinotickets")}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
           <div>
             <label className="label" htmlFor="amount">
-              Betrag
+              {t("Betrag")}
             </label>
             <input
               id="amount"
@@ -261,12 +250,12 @@ export function ExpenseForm({
               value={amountText}
               onChange={(e) => setAmountText(e.target.value)}
               className="input text-lg font-semibold"
-              placeholder="0,00"
+              placeholder={amountPlaceholder}
             />
           </div>
           <div>
             <label className="label" htmlFor="currency">
-              Währung
+              {t("Währung")}
             </label>
             <select
               id="currency"
@@ -287,7 +276,7 @@ export function ExpenseForm({
         <div className={`grid gap-4 ${lockGroup ? "" : "sm:grid-cols-2"}`}>
           <div className={lockGroup ? "hidden" : ""}>
             <label className="label" htmlFor="groupId-select">
-              Gruppe
+              {t("Gruppe")}
             </label>
             <select
               id="groupId-select"
@@ -306,7 +295,7 @@ export function ExpenseForm({
               }}
               className="input"
             >
-              <option value="">Ohne Gruppe (nur zwischen Personen)</option>
+              <option value="">{t("Ohne Gruppe (nur zwischen Personen)")}</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.name}
@@ -316,7 +305,7 @@ export function ExpenseForm({
           </div>
           <div>
             <label className="label" htmlFor="date">
-              Datum
+              {t("Datum")}
             </label>
             <input
               id="date"
@@ -331,13 +320,13 @@ export function ExpenseForm({
 
       <section className="card space-y-4 p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-semibold">Bezahlt von</h2>
+          <h2 className="font-semibold">{t("Bezahlt von")}</h2>
           <button
             type="button"
             className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
             onClick={() => setPayerMode(payerMode === "single" ? "multiple" : "single")}
           >
-            {payerMode === "single" ? "Mehrere Zahlende" : "Nur eine Person"}
+            {payerMode === "single" ? t("Mehrere Zahlende") : t("Nur eine Person")}
           </button>
         </div>
 
@@ -345,7 +334,7 @@ export function ExpenseForm({
           <select name="paidBy" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className="input">
             {people.map((person) => (
               <option key={person.id} value={person.id}>
-                {person.id === currentUser.id ? "Du" : person.name}
+                {person.id === currentUser.id ? t("Du") : person.name}
               </option>
             ))}
           </select>
@@ -355,7 +344,7 @@ export function ExpenseForm({
               <div key={person.id} className="flex items-center gap-3">
                 <Avatar user={person} size={30} />
                 <span className="flex-1 truncate text-sm">
-                  {person.id === currentUser.id ? "Du" : person.name}
+                  {person.id === currentUser.id ? t("Du") : person.name}
                 </span>
                 <input
                   name={`paid:${person.id}`}
@@ -363,13 +352,19 @@ export function ExpenseForm({
                   value={paidValues[person.id] ?? ""}
                   onChange={(e) => setPaidValues({ ...paidValues, [person.id]: e.target.value })}
                   className="input w-32 text-right"
-                  placeholder="0,00"
+                  placeholder={amountPlaceholder}
                 />
               </div>
             ))}
             <p className={`text-sm ${paidSum === amountCents ? "hint" : "negative"}`}>
-              Summe: {formatMoney(paidSum, currency)} von {formatMoney(amountCents, currency)}
-              {paidSum !== amountCents && ` – es fehlen ${formatMoney(amountCents - paidSum, currency)}`}
+              {t("Summe: {summe} von {gesamt}", {
+                summe: formatMoney(paidSum, currency, intlLocale),
+                gesamt: formatMoney(amountCents, currency, intlLocale),
+              })}
+              {paidSum !== amountCents &&
+                ` – ${t("es fehlen {rest}", {
+                  rest: formatMoney(amountCents - paidSum, currency, intlLocale),
+                })}`}
             </p>
           </div>
         )}
@@ -378,14 +373,14 @@ export function ExpenseForm({
       <section className="card space-y-4 p-5">
         <div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Aufteilen</h2>
+            <h2 className="font-semibold">{t("Aufteilen")}</h2>
             {splitType !== "equal" && participants.length > 0 && (
               <button
                 type="button"
                 onClick={distributeEvenly}
                 className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
               >
-                Gleichmäßig verteilen
+                {t("Gleichmäßig verteilen")}
               </button>
             )}
           </div>
@@ -403,14 +398,14 @@ export function ExpenseForm({
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 }`}
               >
-                {tab.label}
+                {t(tab.label)}
               </button>
             ))}
           </div>
-          <p className="hint mt-2">{activeTab.hint}</p>
+          <p className="hint mt-2">{t(activeTab.hint)}</p>
           {convertedNote && (
             <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:bg-brand-900/40 dark:text-brand-200">
-              Die bisherige Verteilung wurde übernommen und umgerechnet.
+              {t("Die bisherige Verteilung wurde übernommen und umgerechnet.")}
             </p>
           )}
         </div>
@@ -445,15 +440,15 @@ export function ExpenseForm({
                     checked={isSelected}
                     onChange={() => toggle(person.id)}
                     className="h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
-                    aria-label={`${person.name} beteiligen`}
+                    aria-label={t("{name} beteiligen", { name: person.name })}
                   />
                   <Avatar user={person} size={32} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {person.id === currentUser.id ? "Du" : person.name}
+                    {person.id === currentUser.id ? t("Du") : person.name}
                   </span>
                   {isSelected && cents !== undefined && (
                     <span className="shrink-0 text-sm font-semibold tabular-nums">
-                      {formatMoney(cents, currency)}
+                      {formatMoney(cents, currency, intlLocale)}
                     </span>
                   )}
                   {isSelected && splitType !== "equal" && (
@@ -470,7 +465,7 @@ export function ExpenseForm({
                         onChange={(e) => setValue(person.id, e.target.value)}
                         className="input w-20 text-right"
                         placeholder={splitType === "shares" ? "1" : "0"}
-                        aria-label={`Wert für ${person.name}`}
+                        aria-label={t("Wert für {name}", { name: person.name })}
                       />
                       <span className="w-3 text-sm text-slate-500">
                         {splitType === "percent" ? "%" : ""}
@@ -505,7 +500,7 @@ export function ExpenseForm({
                         );
                       }}
                       className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-500 dark:bg-slate-700"
-                      aria-label={`${person.name}: Anteil einstellen`}
+                      aria-label={t("{name}: Anteil einstellen", { name: person.name })}
                     />
                     {canAssignRest && (
                       <button
@@ -513,7 +508,7 @@ export function ExpenseForm({
                         onClick={() => assignRemainder(person.id)}
                         className="shrink-0 text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
                       >
-                        Rest zuweisen
+                        {t("Rest zuweisen")}
                       </button>
                     )}
                   </div>
@@ -525,9 +520,9 @@ export function ExpenseForm({
 
         {groupId === "" && friends.length === 0 && !lockGroup && (
           <p className="hint">
-            Du hast noch keine Kontakte.{" "}
+            {t("Du hast noch keine Kontakte.")}{" "}
             <Link href="/freunde" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">
-              Jetzt jemanden hinzufügen
+              {t("Jetzt jemanden hinzufügen")}
             </Link>
           </p>
         )}
@@ -537,14 +532,14 @@ export function ExpenseForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="category">
-              Kategorie
+              {t("Kategorie")}
             </label>
             <select id="category" name="category" defaultValue={initial?.category ?? "general"} className="input">
               {CATEGORY_GROUPS.map((group) => (
-                <optgroup key={group} label={group}>
+                <optgroup key={group} label={t(group)}>
                   {CATEGORIES.filter((c) => c.group === group).map((category) => (
                     <option key={category.id} value={category.id}>
-                      {category.icon} {category.label}
+                      {category.icon} {t(category.label)}
                     </option>
                   ))}
                 </optgroup>
@@ -553,7 +548,7 @@ export function ExpenseForm({
           </div>
           <div>
             <label className="label" htmlFor="recurrence">
-              Wiederholung
+              {t("Wiederholung")}
             </label>
             <select
               id="recurrence"
@@ -564,7 +559,7 @@ export function ExpenseForm({
             >
               {RECURRENCE_OPTIONS.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.label}
+                  {t(option.label)}
                 </option>
               ))}
             </select>
@@ -574,7 +569,7 @@ export function ExpenseForm({
         {recurrence !== "none" && (
           <div>
             <label className="label" htmlFor="recurrenceUntil">
-              Wiederholen bis (optional)
+              {t("Wiederholen bis (optional)")}
             </label>
             <input
               id="recurrenceUntil"
@@ -588,7 +583,7 @@ export function ExpenseForm({
 
         <div>
           <label className="label" htmlFor="notes">
-            Notiz (optional)
+            {t("Notiz (optional)")}
           </label>
           <textarea id="notes" name="notes" rows={3} defaultValue={initial?.notes ?? ""} className="input" />
         </div>
@@ -596,8 +591,8 @@ export function ExpenseForm({
         <ReceiptPicker
           hint={
             initial
-              ? "Weitere Belege hinzufügen. Vorhandene bleiben erhalten."
-              : "Kassenbon oder Rechnung – wird beim Speichern mit hochgeladen."
+              ? t("Weitere Belege hinzufügen. Vorhandene bleiben erhalten.")
+              : t("Kassenbon oder Rechnung – wird beim Speichern mit hochgeladen.")
           }
         />
       </section>
@@ -605,9 +600,11 @@ export function ExpenseForm({
       <FormAlert state={state} />
 
       <div className="flex flex-wrap gap-2">
-        <SubmitButton className="btn-primary">{initial ? "Änderungen speichern" : "Ausgabe speichern"}</SubmitButton>
+        <SubmitButton className="btn-primary">
+          {initial ? t("Änderungen speichern") : t("Ausgabe speichern")}
+        </SubmitButton>
         <Link href={returnTo ?? (groupId ? `/gruppen/${groupId}` : "/uebersicht")} className="btn-secondary">
-          Abbrechen
+          {t("Abbrechen")}
         </Link>
       </div>
     </form>

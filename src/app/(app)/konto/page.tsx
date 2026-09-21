@@ -6,8 +6,11 @@ import { Avatar } from "@/components/ui";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { configuredProviders } from "@/lib/oauth";
 import { ChangePasswordForm, DeleteAccountForm, PaymentDetailsForm, ProfileForm, UnlinkForm } from "./forms";
+import { getT } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Konto" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("Konto") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
@@ -32,6 +35,7 @@ export default async function AccountPage() {
   const linked = new Set(account.oauthAccounts.map((a) => a.provider));
   const available = configuredProviders();
   const providerLabel = (id: string) => (id === "apple" ? "Apple" : "Google");
+  const t = await getT();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -40,22 +44,29 @@ export default async function AccountPage() {
         <div>
           <h1 className="text-2xl font-bold">{user.name}</h1>
           <p className="hint">
-            {user.email} · {groupCount} Gruppen · {expenseCount} Einträge
+            {user.email} ·{" "}
+            {groupCount === 1
+              ? t("{anzahl} Gruppe", { anzahl: groupCount })
+              : t("{anzahl} Gruppen", { anzahl: groupCount })}{" "}
+            ·{" "}
+            {expenseCount === 1
+              ? t("{anzahl} Eintrag", { anzahl: expenseCount })
+              : t("{anzahl} Einträge", { anzahl: expenseCount })}
           </p>
         </div>
       </div>
 
       <section className="card p-5">
-        <h2 className="mb-4 font-semibold">Profil</h2>
+        <h2 className="mb-4 font-semibold">{t("Profil")}</h2>
         <ProfileForm user={user} />
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-1 font-semibold">Zahlungsangaben</h2>
+        <h2 className="mb-1 font-semibold">{t("Zahlungsangaben")}</h2>
         <p className="hint mb-4">
-          Damit andere wissen, wohin sie überweisen sollen. Die Angaben sehen nur Personen, mit denen
-          du etwas teilst – und sie werden ausschließlich angezeigt, es läuft keine Zahlung über
-          Fairteilen.
+          {t(
+            "Damit andere wissen, wohin sie überweisen sollen. Die Angaben sehen nur Personen, mit denen du etwas teilst – und sie werden ausschließlich angezeigt, es läuft keine Zahlung über Fairteilen.",
+          )}
         </p>
         <PaymentDetailsForm
           details={{
@@ -68,11 +79,12 @@ export default async function AccountPage() {
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-1 font-semibold">{hasPassword ? "Passwort ändern" : "Passwort setzen"}</h2>
+        <h2 className="mb-1 font-semibold">{hasPassword ? t("Passwort ändern") : t("Passwort setzen")}</h2>
         {!hasPassword && (
           <p className="hint mb-4">
-            Dein Konto nutzt bisher nur die Anmeldung über einen externen Anbieter. Mit einem Passwort kannst du dich
-            zusätzlich direkt anmelden – lass das Feld „Aktuelles Passwort“ dafür einfach leer.
+            {t(
+              "Dein Konto nutzt bisher nur die Anmeldung über einen externen Anbieter. Mit einem Passwort kannst du dich zusätzlich direkt anmelden – lass das Feld „Aktuelles Passwort“ dafür einfach leer.",
+            )}
           </p>
         )}
         <ChangePasswordForm hasPassword={hasPassword} />
@@ -80,10 +92,8 @@ export default async function AccountPage() {
 
       {available.length > 0 && (
         <section className="card p-5">
-          <h2 className="mb-1 font-semibold">Anmeldung über Google &amp; Apple</h2>
-          <p className="hint mb-4">
-            Verknüpfte Konten können sich ohne Passwort anmelden.
-          </p>
+          <h2 className="mb-1 font-semibold">{t("Anmeldung über Google & Apple")}</h2>
+          <p className="hint mb-4">{t("Verknüpfte Konten können sich ohne Passwort anmelden.")}</p>
 
           {account.oauthAccounts.length > 0 && (
             <ul className="mb-4 divide-y divide-slate-100 dark:divide-slate-800">
@@ -106,20 +116,19 @@ export default async function AccountPage() {
       )}
 
       <section className="card p-5">
-        <h2 className="mb-2 font-semibold">Daten</h2>
-        <p className="hint mb-3">
-          Du kannst jederzeit alle deine Ausgaben als CSV-Datei herunterladen.
-        </p>
+        <h2 className="mb-2 font-semibold">{t("Daten")}</h2>
+        <p className="hint mb-3">{t("Du kannst jederzeit alle deine Ausgaben als CSV-Datei herunterladen.")}</p>
         <Link href="/export" className="btn-secondary">
-          Zum Export
+          {t("Zum Export")}
         </Link>
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-2 font-semibold text-rose-600 dark:text-rose-400">Konto löschen</h2>
+        <h2 className="mb-2 font-semibold text-rose-600 dark:text-rose-400">{t("Konto löschen")}</h2>
         <p className="hint mb-3">
-          Das Konto kann nur gelöscht werden, wenn alle Salden ausgeglichen sind. Alle Daten werden dabei
-          unwiderruflich entfernt.
+          {t(
+            "Das Konto kann nur gelöscht werden, wenn alle Salden ausgeglichen sind. Alle Daten werden dabei unwiderruflich entfernt.",
+          )}
         </p>
         <DeleteAccountForm hasPassword={hasPassword} />
       </section>

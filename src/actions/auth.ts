@@ -14,6 +14,7 @@ import {
 import { isSupportedCurrency } from "@/lib/money";
 import { colorForId } from "@/lib/format";
 import type { ActionState } from "@/lib/action-state";
+import { getT } from "@/lib/i18n-server";
 import { deleteUpload } from "@/lib/uploads";
 import { normalizeIban, validateIban, validateWeroContact } from "@/lib/payment";
 
@@ -24,8 +25,9 @@ function normalizeEmail(value: FormDataEntryValue | null): string {
 }
 
 export async function registerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   if (!registrationOpen()) {
-    return { error: "Die Registrierung ist auf dieser Instanz deaktiviert." };
+    return { error: t("Die Registrierung ist auf dieser Instanz deaktiviert.") };
   }
   const name = String(formData.get("name") ?? "").trim();
   const email = normalizeEmail(formData.get("email"));
@@ -33,15 +35,15 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
   const currency = String(formData.get("currency") ?? "EUR");
   const next = String(formData.get("next") ?? "/uebersicht");
 
-  if (name.length < 2) return { error: "Bitte gib deinen Namen an." };
-  if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
-  if (email.length > 180) return { error: "Die E-Mail-Adresse ist zu lang." };
-  if (!EMAIL_RE.test(email)) return { error: "Bitte gib eine gültige E-Mail-Adresse an." };
-  if (password.length < 8) return { error: "Das Passwort muss mindestens 8 Zeichen lang sein." };
-  if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
+  if (name.length < 2) return { error: t("Bitte gib deinen Namen an.") };
+  if (name.length > 80) return { error: t("Der Name darf höchstens 80 Zeichen lang sein.") };
+  if (email.length > 180) return { error: t("Die E-Mail-Adresse ist zu lang.") };
+  if (!EMAIL_RE.test(email)) return { error: t("Bitte gib eine gültige E-Mail-Adresse an.") };
+  if (password.length < 8) return { error: t("Das Passwort muss mindestens 8 Zeichen lang sein.") };
+  if (!isSupportedCurrency(currency)) return { error: t("Unbekannte Währung.") };
 
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return { error: "Für diese E-Mail-Adresse gibt es bereits ein Konto." };
+  if (existing) return { error: t("Für diese E-Mail-Adresse gibt es bereits ein Konto.") };
 
   const user = await prisma.user.create({
     data: { name, email, passwordHash: hashPassword(password), currency, avatarColor: colorForId(email) },
@@ -52,6 +54,7 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
 }
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/uebersicht");
@@ -60,11 +63,14 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   if (user && !user.passwordHash && user.oauthAccounts.length > 0) {
     const providers = [...new Set(user.oauthAccounts.map((a) => (a.provider === "apple" ? "Apple" : "Google")))];
     return {
-      error: `Dieses Konto ist mit ${providers.join(" und ")} verknüpft. Melde dich darüber an – ein Passwort kannst du danach in den Kontoeinstellungen setzen.`,
+      error: t(
+        "Dieses Konto ist mit {anbieter} verknüpft. Melde dich darüber an – ein Passwort kannst du danach in den Kontoeinstellungen setzen.",
+        { anbieter: providers.join(` ${t("und")} `) },
+      ),
     };
   }
   if (!user || !verifyPassword(password, user.passwordHash)) {
-    return { error: "E-Mail-Adresse oder Passwort ist falsch." };
+    return { error: t("E-Mail-Adresse oder Passwort ist falsch.") };
   }
 
   await createSession(user.id);
@@ -77,38 +83,40 @@ export async function logoutAction(): Promise<void> {
 }
 
 export async function updateProfileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   const email = normalizeEmail(formData.get("email"));
   const currency = String(formData.get("currency") ?? user.currency);
 
-  if (name.length < 2) return { error: "Bitte gib deinen Namen an." };
-  if (name.length > 80) return { error: "Der Name darf höchstens 80 Zeichen lang sein." };
-  if (email.length > 180) return { error: "Die E-Mail-Adresse ist zu lang." };
-  if (!EMAIL_RE.test(email)) return { error: "Bitte gib eine gültige E-Mail-Adresse an." };
-  if (!isSupportedCurrency(currency)) return { error: "Unbekannte Währung." };
+  if (name.length < 2) return { error: t("Bitte gib deinen Namen an.") };
+  if (name.length > 80) return { error: t("Der Name darf höchstens 80 Zeichen lang sein.") };
+  if (email.length > 180) return { error: t("Die E-Mail-Adresse ist zu lang.") };
+  if (!EMAIL_RE.test(email)) return { error: t("Bitte gib eine gültige E-Mail-Adresse an.") };
+  if (!isSupportedCurrency(currency)) return { error: t("Unbekannte Währung.") };
 
   const conflict = await prisma.user.findFirst({ where: { email, NOT: { id: user.id } } });
-  if (conflict) return { error: "Diese E-Mail-Adresse wird bereits verwendet." };
+  if (conflict) return { error: t("Diese E-Mail-Adresse wird bereits verwendet.") };
 
   await prisma.user.update({ where: { id: user.id }, data: { name, email, currency } });
   revalidatePath("/", "layout");
-  return { success: "Profil gespeichert." };
+  return { success: t("Profil gespeichert.") };
 }
 
 export async function changePasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const sessionUser = await requireUser();
   const current = String(formData.get("current") ?? "");
   const next = String(formData.get("next") ?? "");
   const repeat = String(formData.get("repeat") ?? "");
 
-  if (next.length < 8) return { error: "Das neue Passwort muss mindestens 8 Zeichen lang sein." };
-  if (next !== repeat) return { error: "Die beiden neuen Passwörter stimmen nicht überein." };
+  if (next.length < 8) return { error: t("Das neue Passwort muss mindestens 8 Zeichen lang sein.") };
+  if (next !== repeat) return { error: t("Die beiden neuen Passwörter stimmen nicht überein.") };
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: sessionUser.id } });
   // Konten aus Google-/Apple-Anmeldung haben noch kein Passwort und können eines setzen.
   if (user.passwordHash && !verifyPassword(current, user.passwordHash)) {
-    return { error: "Das aktuelle Passwort ist falsch." };
+    return { error: t("Das aktuelle Passwort ist falsch.") };
   }
 
   await prisma.$transaction([
@@ -116,15 +124,16 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
     prisma.session.deleteMany({ where: { userId: user.id } }),
   ]);
   await createSession(user.id);
-  return { success: "Passwort geändert." };
+  return { success: t("Passwort geändert.") };
 }
 
 export async function deleteAccountAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const sessionUser = await requireUser();
   const password = String(formData.get("password") ?? "");
   const user = await prisma.user.findUniqueOrThrow({ where: { id: sessionUser.id } });
   if (user.passwordHash && !verifyPassword(password, user.passwordHash)) {
-    return { error: "Das Passwort ist falsch." };
+    return { error: t("Das Passwort ist falsch.") };
   }
 
   const shares = await prisma.expenseShare.findMany({
@@ -133,7 +142,7 @@ export async function deleteAccountAction(_prev: ActionState, formData: FormData
   });
   const open = shares.reduce((acc, s) => acc + s.paidCents - s.oweCents, 0);
   if (open !== 0) {
-    return { error: "Es bestehen noch offene Salden. Bitte gleiche zuerst alle Beträge aus." };
+    return { error: t("Es bestehen noch offene Salden. Bitte gleiche zuerst alle Beträge aus.") };
   }
 
   const attachments = await prisma.attachment.findMany({
@@ -148,6 +157,7 @@ export async function deleteAccountAction(_prev: ActionState, formData: FormData
 }
 
 export async function unlinkOAuthAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const sessionUser = await requireUser();
   const provider = String(formData.get("provider") ?? "");
 
@@ -158,15 +168,16 @@ export async function unlinkOAuthAction(_prev: ActionState, formData: FormData):
 
   const remaining = user.oauthAccounts.filter((account) => account.provider !== provider);
   if (!user.passwordHash && remaining.length === 0) {
-    return { error: "Setze zuerst ein Passwort – sonst könntest du dich nicht mehr anmelden." };
+    return { error: t("Setze zuerst ein Passwort – sonst könntest du dich nicht mehr anmelden.") };
   }
 
   await prisma.oAuthAccount.deleteMany({ where: { userId: user.id, provider } });
   revalidatePath("/konto");
-  return { success: "Verknüpfung entfernt." };
+  return { success: t("Verknüpfung entfernt.") };
 }
 
 export async function updatePaymentDetailsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const user = await requireUser();
   const iban = normalizeIban(String(formData.get("iban") ?? ""));
   const weroContact = String(formData.get("weroContact") ?? "").trim();
@@ -174,15 +185,15 @@ export async function updatePaymentDetailsAction(_prev: ActionState, formData: F
   const paymentNote = String(formData.get("paymentNote") ?? "").trim();
 
   const ibanProblem = validateIban(iban);
-  if (ibanProblem) return { error: ibanProblem };
+  if (ibanProblem) return { error: t(ibanProblem) };
 
   const weroProblem = validateWeroContact(weroContact);
-  if (weroProblem) return { error: weroProblem };
+  if (weroProblem) return { error: t(weroProblem) };
 
   if (paypalEmail && !EMAIL_RE.test(paypalEmail)) {
-    return { error: "Bitte gib für PayPal eine gültige E-Mail-Adresse an." };
+    return { error: t("Bitte gib für PayPal eine gültige E-Mail-Adresse an.") };
   }
-  if (paymentNote.length > 500) return { error: "Der Hinweis darf höchstens 500 Zeichen lang sein." };
+  if (paymentNote.length > 500) return { error: t("Der Hinweis darf höchstens 500 Zeichen lang sein.") };
 
   await prisma.user.update({
     where: { id: user.id },
@@ -195,5 +206,5 @@ export async function updatePaymentDetailsAction(_prev: ActionState, formData: F
   });
 
   revalidatePath("/konto");
-  return { success: "Zahlungsangaben gespeichert." };
+  return { success: t("Zahlungsangaben gespeichert.") };
 }

@@ -2,6 +2,7 @@ import { createSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isOAuthProvider, providerConfig, verifyIdToken } from "@/lib/oauth";
 import { AccountError, resolveUserFromClaims } from "@/lib/oauth-account";
+import { getT } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
@@ -37,14 +38,14 @@ export async function POST(request: Request) {
   // Nonce einlösen – jede nur ein einziges Mal.
   const stored = await prisma.loginNonce.findUnique({ where: { value: nonce } });
   if (!stored || stored.usedAt !== null || stored.expiresAt < new Date()) {
-    return Response.json({ error: "Der Anmeldeversuch ist abgelaufen. Bitte erneut versuchen." }, { status: 400 });
+    return Response.json({ error: (await getT())("Der Anmeldeversuch ist abgelaufen. Bitte erneut versuchen.") }, { status: 400 });
   }
   const claimed = await prisma.loginNonce.updateMany({
     where: { id: stored.id, usedAt: null },
     data: { usedAt: new Date() },
   });
   if (claimed.count !== 1) {
-    return Response.json({ error: "Dieser Anmeldeversuch wurde bereits verwendet." }, { status: 400 });
+    return Response.json({ error: (await getT())("Dieser Anmeldeversuch wurde bereits verwendet.") }, { status: 400 });
   }
 
   let userId: string;
@@ -52,9 +53,11 @@ export async function POST(request: Request) {
     const claims = await verifyIdToken(config, idToken, nonce);
     userId = await resolveUserFromClaims(provider, claims);
   } catch (error) {
-    if (error instanceof AccountError) return Response.json({ error: error.message }, { status: 409 });
+    if (error instanceof AccountError) {
+      return Response.json({ error: (await getT())(error.message) }, { status: 409 });
+    }
     console.error("Native Anmeldung fehlgeschlagen:", error);
-    return Response.json({ error: "Die Anmeldung konnte nicht abgeschlossen werden." }, { status: 401 });
+    return Response.json({ error: (await getT())("Die Anmeldung konnte nicht abgeschlossen werden.") }, { status: 401 });
   }
 
   await createSession(userId);

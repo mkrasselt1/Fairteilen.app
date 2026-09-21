@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { joinSharedBoardAction } from "@/actions/groups";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { Avatar } from "@/components/ui";
+import { useT } from "@/components/i18n";
 
 /** Beim ersten Öffnen eines geteilten Links: Wer bist du? */
 export function WhoAreYouForm({
@@ -15,6 +16,7 @@ export function WhoAreYouForm({
   members: { id: string; name: string; avatarColor: string }[];
   loggedInName: string | null;
 }) {
+  const t = useT();
   const [state, formAction] = useActionState(joinSharedBoardAction, null);
   const [choice, setChoice] = useState<string>("");
 
@@ -23,10 +25,10 @@ export function WhoAreYouForm({
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="token" value={token} />
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          Du bist als <strong>{loggedInName}</strong> angemeldet und trittst mit diesem Konto bei.
+          {t("Du bist als {name} angemeldet und trittst mit diesem Konto bei.", { name: loggedInName })}
         </p>
-        <SubmitButton className="btn-primary w-full" pendingLabel="Einen Moment …">
-          Mitmachen
+        <SubmitButton className="btn-primary w-full" pendingLabel={t("Einen Moment …")}>
+          {t("Mitmachen")}
         </SubmitButton>
         <FormAlert state={state} />
       </form>
@@ -39,7 +41,7 @@ export function WhoAreYouForm({
 
       {members.length > 0 && (
         <div>
-          <span className="label">Bist du schon dabei?</span>
+          <span className="label">{t("Bist du schon dabei?")}</span>
           <ul className="space-y-1.5">
             {members.map((member) => (
               <li key={member.id}>
@@ -59,7 +61,7 @@ export function WhoAreYouForm({
                     className="h-4 w-4 border-slate-300 text-brand-500 focus:ring-brand-500"
                   />
                   <Avatar user={member} size={30} />
-                  <span className="text-sm font-medium">Ich bin {member.name}</span>
+                  <span className="text-sm font-medium">{t("Ich bin {name}", { name: member.name })}</span>
                 </label>
               </li>
             ))}
@@ -69,26 +71,27 @@ export function WhoAreYouForm({
 
       <div>
         <label className="label" htmlFor="own-name">
-          {members.length > 0 ? "… oder neu dazukommen" : "Wie heißt du?"}
+          {members.length > 0 ? t("… oder neu dazukommen") : t("Wie heißt du?")}
         </label>
         <input
           id="own-name"
           name="name"
           maxLength={80}
           className="input"
-          placeholder="Dein Name"
+          placeholder={t("Dein Name")}
           onChange={() => setChoice("")}
           onFocus={() => setChoice("")}
         />
         <p className="hint mt-1">
-          Nur dieser Name wird gespeichert. Ein Konto brauchst du nicht – dein Browser merkt sich, wer
-          du hier bist.
+          {t(
+            "Nur dieser Name wird gespeichert. Ein Konto brauchst du nicht – dein Browser merkt sich, wer du hier bist.",
+          )}
         </p>
       </div>
 
       <FormAlert state={state} />
-      <SubmitButton className="btn-primary w-full" pendingLabel="Einen Moment …">
-        Los geht's
+      <SubmitButton className="btn-primary w-full" pendingLabel={t("Einen Moment …")}>
+        {t("Los geht's")}
       </SubmitButton>
     </form>
   );

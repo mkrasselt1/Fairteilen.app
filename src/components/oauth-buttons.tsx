@@ -1,4 +1,5 @@
 import { configuredProviders } from "@/lib/oauth";
+import { getT } from "@/lib/i18n-server";
 
 function GoogleMark() {
   return (
@@ -29,7 +30,14 @@ function AppleMark() {
 }
 
 /** Anmeldeknöpfe – erscheinen nur, wenn der jeweilige Anbieter eingerichtet ist. */
-export function OAuthButtons({ next = "/uebersicht", intent = "login" }: { next?: string; intent?: "login" | "link" }) {
+export async function OAuthButtons({
+  next = "/uebersicht",
+  intent = "login",
+}: {
+  next?: string;
+  intent?: "login" | "link";
+}) {
+  const t = await getT();
   const providers = configuredProviders();
   if (providers.length === 0) return null;
 
@@ -40,7 +48,7 @@ export function OAuthButtons({ next = "/uebersicht", intent = "login" }: { next?
       {intent === "login" && (
         <div className="flex items-center gap-3">
           <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-          <span className="text-xs uppercase tracking-wide text-slate-400">oder</span>
+          <span className="text-xs uppercase tracking-wide text-slate-400">{t("oder")}</span>
           <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
         </div>
       )}
@@ -49,7 +57,7 @@ export function OAuthButtons({ next = "/uebersicht", intent = "login" }: { next?
           provider.id === "google" ? (
             <a key={provider.id} href={`/api/auth/google${query}`} className="btn-secondary w-full">
               <GoogleMark />
-              {intent === "link" ? "Google-Konto verknüpfen" : "Mit Google anmelden"}
+              {intent === "link" ? t("Google-Konto verknüpfen") : t("Mit Google anmelden")}
             </a>
           ) : (
             <a
@@ -58,7 +66,7 @@ export function OAuthButtons({ next = "/uebersicht", intent = "login" }: { next?
               className="btn w-full bg-black text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200"
             >
               <AppleMark />
-              {intent === "link" ? "Apple-Konto verknüpfen" : "Mit Apple anmelden"}
+              {intent === "link" ? t("Apple-Konto verknüpfen") : t("Mit Apple anmelden")}
             </a>
           ),
         )}

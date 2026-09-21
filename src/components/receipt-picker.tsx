@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/components/i18n";
 
 /**
  * Belege aufnehmen oder auswählen. Bilder werden noch im Browser verkleinert –
@@ -44,13 +45,14 @@ async function shrinkImage(file: File): Promise<File> {
 
 export function ReceiptPicker({
   name = "beleg",
-  label = "Belege",
-  hint = "Kassenbon oder Rechnung – wird beim Speichern mit hochgeladen.",
+  label,
+  hint,
 }: {
   name?: string;
   label?: string;
   hint?: string;
 }) {
+  const t = useT();
   const [items, setItems] = useState<Prepared[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +95,12 @@ export function ReceiptPicker({
         }
       }
       if (file.size > MAX_BYTES) {
-        problems.push(`${original.name} ist mit ${formatBytes(file.size)} zu groß (höchstens 10 MB).`);
+        problems.push(
+          t("{datei} ist mit {groesse} zu groß (höchstens 10 MB).", {
+            datei: original.name,
+            groesse: formatBytes(file.size),
+          }),
+        );
         continue;
       }
       prepared.push({
@@ -120,7 +127,7 @@ export function ReceiptPicker({
 
   return (
     <div>
-      <span className="label">{label}</span>
+      <span className="label">{label ?? t("Belege")}</span>
 
       {/* Das eigentliche Formularfeld – gefüllt aus den vorbereiteten Dateien. */}
       <input ref={hiddenRef} type="file" name={name} multiple className="hidden" tabIndex={-1} aria-hidden />
@@ -150,16 +157,20 @@ export function ReceiptPicker({
           className="btn-secondary"
           disabled={busy}
         >
-          📷 Foto aufnehmen
+          {t("📷 Foto aufnehmen")}
         </button>
         <button type="button" onClick={() => fileRef.current?.click()} className="btn-secondary" disabled={busy}>
-          📎 Datei wählen
+          {t("📎 Datei wählen")}
         </button>
       </div>
 
-      {busy && <p className="hint mt-2">Bild wird vorbereitet …</p>}
+      {busy && <p className="hint mt-2">{t("Bild wird vorbereitet …")}</p>}
       {error && <p className="negative mt-2 text-sm">{error}</p>}
-      {items.length === 0 && !busy && <p className="hint mt-2">{hint}</p>}
+      {items.length === 0 && !busy && (
+        <p className="hint mt-2">
+          {hint ?? t("Kassenbon oder Rechnung – wird beim Speichern mit hochgeladen.")}
+        </p>
+      )}
 
       {items.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-3">
@@ -188,13 +199,14 @@ export function ReceiptPicker({
                 type="button"
                 onClick={() => remove(index)}
                 className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-white shadow dark:bg-slate-100 dark:text-slate-900"
-                aria-label={`${item.file.name} entfernen`}
+                aria-label={t("{datei} entfernen", { datei: item.file.name })}
               >
                 ✕
               </button>
               <p className="mt-1 w-24 truncate text-[11px] text-slate-500 dark:text-slate-400" title={item.file.name}>
                 {formatBytes(item.file.size)}
-                {item.file.size < item.originalSize && ` statt ${formatBytes(item.originalSize)}`}
+                {item.file.size < item.originalSize &&
+                  ` ${t("statt {vorher}", { vorher: formatBytes(item.originalSize) })}`}
               </p>
             </li>
           ))}

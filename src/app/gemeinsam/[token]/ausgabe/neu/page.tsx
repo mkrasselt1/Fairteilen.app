@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireBoard } from "../../board";
 import { ExpenseForm } from "@/components/expense-form";
+import { getT } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
@@ -8,13 +9,14 @@ export default async function NewSharedExpensePage({ params }: { params: Promise
   const { token } = await params;
   const { group, actor, detail } = await requireBoard(token);
   const me = detail.group.members.find((member) => member.userId === actor.userId)!.user;
+  const t = await getT();
 
   return (
     <div className="space-y-5">
       <Link href={`/gemeinsam/${token}`} className="text-sm text-slate-500 hover:underline dark:text-slate-400">
         ← {group.name}
       </Link>
-      <h1 className="text-2xl font-bold">Ausgabe hinzufügen</h1>
+      <h1 className="text-2xl font-bold">{t("Ausgabe hinzufügen")}</h1>
       <ExpenseForm
         currentUser={me}
         groups={[

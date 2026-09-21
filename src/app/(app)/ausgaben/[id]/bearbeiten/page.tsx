@@ -6,8 +6,11 @@ import { ExpenseForm } from "@/components/expense-form";
 import { toDateInputValue } from "@/lib/format";
 import type { SplitType } from "@/lib/split";
 import { getExpenseFormOptions } from "../../options";
+import { getT } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Ausgabe bearbeiten" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("Ausgabe bearbeiten") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function EditExpensePage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,10 +20,11 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
   if (!expense || expense.deletedAt) notFound();
 
   const { groups, friends } = await getExpenseFormOptions(user.id);
+  const t = await getT();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">Ausgabe bearbeiten</h1>
+      <h1 className="text-2xl font-bold">{t("Ausgabe bearbeiten")}</h1>
       <ExpenseForm
         currentUser={user}
         groups={groups}

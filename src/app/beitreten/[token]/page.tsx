@@ -6,8 +6,11 @@ import { prisma } from "@/lib/db";
 import { groupTypeOf } from "@/lib/categories";
 import { AvatarStack } from "@/components/ui";
 import { JoinForm } from "./join-form";
+import { getT } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Gruppe beitreten", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("Gruppe beitreten"), robots: { index: false, follow: false } };
+}
 export const dynamic = "force-dynamic";
 
 export default async function JoinPage({ params }: { params: Promise<{ token: string }> }) {
@@ -21,6 +24,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
   const user = await getCurrentUser();
   const alreadyMember = user ? group.members.some((m) => m.userId === user.id) : false;
   const next = encodeURIComponent(`/beitreten/${token}`);
+  const t = await getT();
 
   return (
     <div className="flex min-h-dvh items-center justify-center p-6">
@@ -34,7 +38,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
           </div>
           <h1 className="text-xl font-bold">{group.name}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {group.createdBy.name} lädt dich in diese Gruppe ein.
+            {t("{name} lädt dich in diese Gruppe ein.", { name: group.createdBy.name })}
           </p>
         </div>
 
@@ -44,7 +48,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
 
         {alreadyMember ? (
           <Link href={`/gruppen/${group.id}`} className="btn-primary w-full">
-            Zur Gruppe
+            {t("Zur Gruppe")}
           </Link>
         ) : user ? (
           <JoinForm
@@ -56,10 +60,10 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
         ) : (
           <div className="space-y-2">
             <Link href={`/registrieren?next=${next}`} className="btn-primary w-full">
-              Konto erstellen und beitreten
+              {t("Konto erstellen und beitreten")}
             </Link>
             <Link href={`/anmelden?next=${next}`} className="btn-secondary w-full">
-              Ich habe schon ein Konto
+              {t("Ich habe schon ein Konto")}
             </Link>
           </div>
         )}

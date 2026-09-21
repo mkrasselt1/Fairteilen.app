@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useT } from "@/components/i18n";
 
 /**
  * Modal auf Basis des <dialog>-Elements: bringt Fokusfalle, Escape und
@@ -69,7 +70,7 @@ export function ConfirmDialog({
   title,
   description,
   confirm,
-  cancelLabel = "Abbrechen",
+  cancelLabel,
 }: {
   open: boolean;
   onClose: () => void;
@@ -78,11 +79,12 @@ export function ConfirmDialog({
   confirm: React.ReactNode;
   cancelLabel?: string;
 }) {
+  const t = useT();
   return (
     <Modal open={open} onClose={onClose} title={title} description={description}>
       <div className="flex flex-wrap justify-end gap-2">
         <button type="button" onClick={onClose} className="btn-secondary">
-          {cancelLabel}
+          {cancelLabel ?? t("Abbrechen")}
         </button>
         {confirm}
       </div>

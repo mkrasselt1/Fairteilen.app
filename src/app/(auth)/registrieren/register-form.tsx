@@ -4,15 +4,17 @@ import { useActionState } from "react";
 import { registerAction } from "@/actions/auth";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { CURRENCIES } from "@/lib/money";
+import { useT } from "@/components/i18n";
 
 export function RegisterForm({ next }: { next: string }) {
+  const t = useT();
   const [state, formAction] = useActionState(registerAction, null);
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <div>
         <label className="label" htmlFor="name">
-          Name
+          {t("Name")}
         </label>
         <input
           id="name"
@@ -26,13 +28,13 @@ export function RegisterForm({ next }: { next: string }) {
       </div>
       <div>
         <label className="label" htmlFor="email">
-          E-Mail-Adresse
+          {t("E-Mail-Adresse")}
         </label>
         <input id="email" name="email" type="email" autoComplete="email" required className="input" />
       </div>
       <div>
         <label className="label" htmlFor="password">
-          Passwort
+          {t("Passwort")}
         </label>
         <input
           id="password"
@@ -43,23 +45,23 @@ export function RegisterForm({ next }: { next: string }) {
           required
           className="input"
         />
-        <p className="hint mt-1">Mindestens 8 Zeichen.</p>
+        <p className="hint mt-1">{t("Mindestens 8 Zeichen.")}</p>
       </div>
       <div>
         <label className="label" htmlFor="currency">
-          Standardwährung
+          {t("Standardwährung")}
         </label>
         <select id="currency" name="currency" defaultValue="EUR" className="input">
           {CURRENCIES.map((currency) => (
             <option key={currency.code} value={currency.code}>
-              {currency.code} – {currency.name}
+              {currency.code} – {t(currency.name)}
             </option>
           ))}
         </select>
       </div>
       <FormAlert state={state} />
-      <SubmitButton className="btn-primary w-full" pendingLabel="Konto wird erstellt …">
-        Konto erstellen
+      <SubmitButton className="btn-primary w-full" pendingLabel={t("Konto wird erstellt …")}>
+        {t("Konto erstellen")}
       </SubmitButton>
     </form>
   );

@@ -116,6 +116,7 @@ export async function getGroupActor(groupId: string): Promise<Actor | null> {
 }
 
 /** Wie `getGroupActor`, aber für Aktionen: ohne Berechtigung gibt es einen Fehler. */
+/** Meldung als deutscher Originaltext – zur Ausgabe durch t() übersetzbar. */
 export class ActorError extends Error {}
 
 export async function requireGroupActor(groupId: string): Promise<Actor> {

@@ -5,8 +5,10 @@ import { createGroupAction } from "@/actions/groups";
 import { FormAlert, SubmitButton } from "@/components/forms";
 import { GROUP_TYPES } from "@/lib/categories";
 import { CURRENCIES } from "@/lib/money";
+import { useT } from "@/components/i18n";
 
 export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
+  const t = useT();
   const [state, formAction] = useActionState(createGroupAction, null);
   const [type, setType] = useState("home");
 
@@ -14,7 +16,7 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
     <form action={formAction} className="card space-y-5 p-5">
       <div>
         <label className="label" htmlFor="name">
-          Name der Gruppe
+          {t("Name der Gruppe")}
         </label>
         <input
           id="name"
@@ -22,13 +24,13 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
           required
           maxLength={80}
           className="input"
-          placeholder="z. B. WG Hauptstraße"
+          placeholder={t("z. B. WG Hauptstraße")}
           autoFocus
         />
       </div>
 
       <div>
-        <span className="label">Art</span>
+        <span className="label">{t("Art")}</span>
         <input type="hidden" name="type" value={type} />
         <div className="flex flex-wrap gap-2">
           {GROUP_TYPES.map((option) => (
@@ -42,7 +44,7 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
                   : "border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
               }`}
             >
-              <span aria-hidden>{option.icon}</span> {option.label}
+              <span aria-hidden>{option.icon}</span> {t(option.label)}
             </button>
           ))}
         </div>
@@ -50,12 +52,12 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
 
       <div>
         <label className="label" htmlFor="currency">
-          Währung der Gruppe
+          {t("Währung der Gruppe")}
         </label>
         <select id="currency" name="currency" defaultValue={defaultCurrency} className="input sm:w-56">
           {CURRENCIES.map((currency) => (
             <option key={currency.code} value={currency.code}>
-              {currency.code} – {currency.name}
+              {currency.code} – {t(currency.name)}
             </option>
           ))}
         </select>
@@ -63,7 +65,7 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
 
       <div>
         <label className="label" htmlFor="memberEmails">
-          Mitglieder einladen (optional)
+          {t("Mitglieder einladen (optional)")}
         </label>
         <textarea
           id="memberEmails"
@@ -73,7 +75,9 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
           placeholder="alex@example.com, jamie@example.com"
         />
         <p className="hint mt-1">
-          Personen mit Konto werden direkt hinzugefügt. Für alle anderen bekommst du danach einen Einladungslink.
+          {t(
+            "Personen mit Konto werden direkt hinzugefügt. Für alle anderen bekommst du danach einen Einladungslink.",
+          )}
         </p>
       </div>
 
@@ -85,15 +89,15 @@ export function NewGroupForm({ defaultCurrency }: { defaultCurrency: string }) {
           className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
         />
         <span>
-          <span className="font-medium">Schulden vereinfachen</span>
+          <span className="font-medium">{t("Schulden vereinfachen")}</span>
           <span className="hint block">
-            Fasst Zahlungen so zusammen, dass möglichst wenige Überweisungen nötig sind.
+            {t("Fasst Zahlungen so zusammen, dass möglichst wenige Überweisungen nötig sind.")}
           </span>
         </span>
       </label>
 
       <FormAlert state={state} />
-      <SubmitButton className="btn-primary">Gruppe erstellen</SubmitButton>
+      <SubmitButton className="btn-primary">{t("Gruppe erstellen")}</SubmitButton>
     </form>
   );
 }

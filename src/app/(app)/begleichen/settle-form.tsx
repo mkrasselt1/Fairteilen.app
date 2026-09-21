@@ -9,6 +9,7 @@ import { toDateInputValue } from "@/lib/format";
 import type { ExpenseFormGroup, PersonOption } from "@/components/expense-form";
 import { PaymentDetailsCard } from "@/components/payment-details";
 import type { PaymentDetails } from "@/lib/payment";
+import { useLocale, useT } from "@/components/i18n";
 
 type PayablePerson = PersonOption & Partial<PaymentDetails>;
 
@@ -27,6 +28,9 @@ export function SettleForm({
   returnTo?: string;
   lockGroup?: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const amountPlaceholder = locale === "de" ? "0,00" : "0.00";
   const [state, formAction] = useActionState(settleUpAction, null);
   const [groupId, setGroupId] = useState(defaults.groupId);
   const [currency, setCurrency] = useState(
@@ -48,7 +52,7 @@ export function SettleForm({
       {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
       <div className={lockGroup ? "hidden" : ""}>
         <label className="label" htmlFor="groupId">
-          Gruppe
+          {t("Gruppe")}
         </label>
         <select
           id="groupId"
@@ -61,7 +65,7 @@ export function SettleForm({
           }}
           className="input"
         >
-          <option value="">Ohne Gruppe</option>
+          <option value="">{t("Ohne Gruppe")}</option>
           {groups.map((group) => (
             <option key={group.id} value={group.id}>
               {group.name}
@@ -73,7 +77,7 @@ export function SettleForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="fromUserId">
-            Wer zahlt?
+            {t("Wer zahlt?")}
           </label>
           <select
             id="fromUserId"
@@ -84,14 +88,14 @@ export function SettleForm({
           >
             {people.map((person) => (
               <option key={person.id} value={person.id}>
-                {person.id === currentUser.id ? "Du" : person.name}
+                {person.id === currentUser.id ? t("Du") : person.name}
               </option>
             ))}
           </select>
         </div>
         <div>
           <label className="label" htmlFor="toUserId">
-            An wen?
+            {t("An wen?")}
           </label>
           <select
             id="toUserId"
@@ -101,12 +105,12 @@ export function SettleForm({
             className="input"
             required
           >
-            <option value="">Bitte auswählen …</option>
+            <option value="">{t("Bitte auswählen …")}</option>
             {people
               .filter((person) => person.id !== fromUserId)
               .map((person) => (
                 <option key={person.id} value={person.id}>
-                  {person.id === currentUser.id ? "Du" : person.name}
+                  {person.id === currentUser.id ? t("Du") : person.name}
                 </option>
               ))}
           </select>
@@ -116,7 +120,7 @@ export function SettleForm({
       <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
         <div>
           <label className="label" htmlFor="amount">
-            Betrag
+            {t("Betrag")}
           </label>
           <input
             id="amount"
@@ -125,12 +129,12 @@ export function SettleForm({
             inputMode="decimal"
             defaultValue={defaults.amount}
             className="input text-lg font-semibold"
-            placeholder="0,00"
+            placeholder={amountPlaceholder}
           />
         </div>
         <div>
           <label className="label" htmlFor="currency">
-            Währung
+            {t("Währung")}
           </label>
           <select
             id="currency"
@@ -150,7 +154,7 @@ export function SettleForm({
 
       <div>
         <label className="label" htmlFor="date">
-          Datum
+          {t("Datum")}
         </label>
         <input id="date" name="date" type="date" defaultValue={toDateInputValue(new Date())} className="input" />
       </div>
@@ -169,16 +173,16 @@ export function SettleForm({
 
       <div>
         <label className="label" htmlFor="notes">
-          Notiz (optional)
+          {t("Notiz (optional)")}
         </label>
-        <input id="notes" name="notes" className="input" placeholder="z. B. per Überweisung" />
+        <input id="notes" name="notes" className="input" placeholder={t("z. B. per Überweisung")} />
       </div>
 
       <FormAlert state={state} />
       <div className="flex gap-2">
-        <SubmitButton className="btn-primary">Zahlung speichern</SubmitButton>
+        <SubmitButton className="btn-primary">{t("Zahlung speichern")}</SubmitButton>
         <Link href={returnTo ?? (groupId ? `/gruppen/${groupId}` : "/uebersicht")} className="btn-secondary">
-          Abbrechen
+          {t("Abbrechen")}
         </Link>
       </div>
     </form>

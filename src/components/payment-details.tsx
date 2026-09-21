@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { formatIban, type PaymentDetails } from "@/lib/payment";
+import { useT } from "@/components/i18n";
 
 function CopyRow({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex flex-wrap items-center gap-2 py-1.5">
@@ -25,7 +27,7 @@ function CopyRow({ label, value, hint }: { label: string; value: string; hint?: 
           }
         }}
       >
-        {copied ? "Kopiert ✓" : "Kopieren"}
+        {copied ? t("Kopiert ✓") : t("Kopieren")}
       </button>
     </div>
   );
@@ -33,19 +35,20 @@ function CopyRow({ label, value, hint }: { label: string; value: string; hint?: 
 
 /** Zeigt, wohin überwiesen werden kann – ohne Anbindung an einen Zahlungsdienst. */
 export function PaymentDetailsCard({ name, details }: { name: string; details: PaymentDetails }) {
+  const t = useT();
   const empty = !details.iban && !details.weroContact && !details.paypalEmail && !details.paymentNote;
 
   return (
     <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/60">
-      <p className="text-sm font-medium">So erreichst du {name}</p>
+      <p className="text-sm font-medium">{t("So erreichst du {name}", { name })}</p>
       {empty ? (
         <p className="hint mt-1">
-          {name} hat noch keine Zahlungsangaben hinterlegt. Fragt am besten direkt nach.
+          {t("{name} hat noch keine Zahlungsangaben hinterlegt. Fragt am besten direkt nach.", { name })}
         </p>
       ) : (
         <div className="mt-1 divide-y divide-slate-200 dark:divide-slate-700">
           {details.weroContact && (
-            <CopyRow label="Wero" value={details.weroContact} hint="in der Banking-App" />
+            <CopyRow label="Wero" value={details.weroContact} hint={t("in der Banking-App")} />
           )}
           {details.iban && <CopyRow label="IBAN" value={formatIban(details.iban)} />}
           {details.paypalEmail && <CopyRow label="PayPal" value={details.paypalEmail} />}

@@ -3,8 +3,10 @@
 import { useActionState, useEffect, useRef } from "react";
 import { addGuestAction } from "@/actions/groups";
 import { FormAlert, SubmitButton } from "@/components/forms";
+import { useT } from "@/components/i18n";
 
 export function AddPersonForm({ groupId }: { groupId: string }) {
+  const t = useT();
   const [state, formAction] = useActionState(addGuestAction, null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -21,11 +23,11 @@ export function AddPersonForm({ groupId }: { groupId: string }) {
           required
           maxLength={80}
           className="input flex-1 min-w-[12rem]"
-          placeholder="Noch jemanden hinzufügen"
-          aria-label="Name der Person"
+          placeholder={t("Noch jemanden hinzufügen")}
+          aria-label={t("Name der Person")}
         />
         <SubmitButton className="btn-secondary" pendingLabel="…">
-          Hinzufügen
+          {t("Hinzufügen")}
         </SubmitButton>
       </div>
       <FormAlert state={state} />

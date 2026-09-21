@@ -5,6 +5,7 @@ import { getExpenseDetail } from "@/lib/data";
 import { ExpenseForm } from "@/components/expense-form";
 import { toDateInputValue } from "@/lib/format";
 import type { SplitType } from "@/lib/split";
+import { getT } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function EditSharedExpensePage({
   if (!expense || expense.groupId !== group.id || expense.deletedAt) notFound();
 
   const me = detail.group.members.find((member) => member.userId === actor.userId)!.user;
+  const t = await getT();
 
   return (
     <div className="space-y-5">
@@ -27,9 +29,9 @@ export default async function EditSharedExpensePage({
         href={`/gemeinsam/${token}/ausgabe/${expense.id}`}
         className="text-sm text-slate-500 hover:underline dark:text-slate-400"
       >
-        ← Zurück zur Ausgabe
+        ← {t("Zurück zur Ausgabe")}
       </Link>
-      <h1 className="text-2xl font-bold">Ausgabe bearbeiten</h1>
+      <h1 className="text-2xl font-bold">{t("Ausgabe bearbeiten")}</h1>
       <ExpenseForm
         currentUser={me}
         groups={[

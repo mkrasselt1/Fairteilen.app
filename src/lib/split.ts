@@ -4,6 +4,8 @@
  * Anteile immer exakt dem Gesamtbetrag entspricht.
  */
 
+import { fill } from "./i18n.ts";
+
 export const SPLIT_TYPES = ["equal", "exact", "percent", "shares", "adjustment"] as const;
 export type SplitType = (typeof SPLIT_TYPES)[number];
 
@@ -22,7 +24,21 @@ export type SplitParticipant = {
 
 export type SplitResult = { userId: string; oweCents: number };
 
-export class SplitError extends Error {}
+/**
+ * Fehler der Aufteilung. Die Meldung steht auf Deutsch im `message`, die
+ * unausgefüllte Vorlage samt Werten in `template`/`params` – so lässt sie sich
+ * an der Oberfläche in der gewählten Sprache ausgeben.
+ */
+export class SplitError extends Error {
+  readonly template: string;
+  readonly params: Record<string, string | number>;
+
+  constructor(template: string, params: Record<string, string | number> = {}) {
+    super(fill(template, params));
+    this.template = template;
+    this.params = params;
+  }
+}
 
 /** Verteilt `total` proportional zu `weights` und vergibt Restcents nach größtem Rest. */
 export function distributeByWeights(total: number, weights: number[]): number[] {
@@ -79,7 +95,9 @@ export function computeShares(
       if (bps.some((v) => v < 0)) throw new SplitError("Prozentwerte dürfen nicht negativ sein.");
       const sum = bps.reduce((a, b) => a + b, 0);
       if (sum !== 10000) {
-        throw new SplitError(`Die Prozentwerte müssen zusammen 100 % ergeben (aktuell ${(sum / 100).toFixed(2)} %).`);
+        throw new SplitError("Die Prozentwerte müssen zusammen 100 % ergeben (aktuell {summe} %).", {
+          summe: (sum / 100).toFixed(2),
+        });
       }
       const parts = distributeByWeights(amountCents, bps);
       return participants.map((p, i) => ({ userId: p.userId, oweCents: parts[i] }));

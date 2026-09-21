@@ -3,18 +3,25 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NewBoardForm } from "./new-board-form";
+import { LanguageSwitch } from "@/components/language-switch";
+import { getT } from "@/lib/i18n-server";
 
-export const metadata: Metadata = {
-  title: "Gemeinsame Abrechnung starten",
-  description:
-    "Ausgaben zu mehreren abrechnen – ohne Konto. Link teilen, alle tragen ein, Fairteilen rechnet aus, wer wem was schuldet.",
-  alternates: { canonical: "/gemeinsam/start" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Gemeinsame Abrechnung starten"),
+    description: t(
+      "Ausgaben zu mehreren abrechnen – ohne Konto. Link teilen, alle tragen ein, Fairteilen rechnet aus, wer wem was schuldet.",
+    ),
+    alternates: { canonical: "/gemeinsam/start" },
+  };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function StartBoardPage() {
   const user = await getCurrentUser();
+  const t = await getT();
 
   return (
     <div className="min-h-dvh">
@@ -24,14 +31,15 @@ export default async function StartBoardPage() {
             <span aria-hidden className="text-xl">🤝</span> Fairteilen
           </Link>
           <div className="ml-auto flex items-center gap-1">
+            <LanguageSwitch />
             <ThemeToggle />
             {user ? (
               <Link href="/uebersicht" className="btn-secondary !px-3 !py-1.5">
-                Meine Gruppen
+                {t("Meine Gruppen")}
               </Link>
             ) : (
               <Link href="/anmelden" className="btn-ghost !px-3 !py-1.5">
-                Anmelden
+                {t("Anmelden")}
               </Link>
             )}
           </div>
@@ -40,10 +48,14 @@ export default async function StartBoardPage() {
 
       <main className="mx-auto max-w-lg space-y-6 px-4 py-8">
         <div>
-          <h1 className="text-2xl font-bold">Gemeinsam abrechnen</h1>
+          <h1 className="text-2xl font-bold">{t("Gemeinsam abrechnen")}</h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Du bekommst einen Link. Alle, die ihn haben, tragen ihre Ausgaben ein und sehen sofort, wer
-            wem was schuldet. {user ? "Die Abrechnung erscheint zusätzlich in deinen Gruppen." : "Ein Konto braucht dafür niemand."}
+            {t(
+              "Du bekommst einen Link. Alle, die ihn haben, tragen ihre Ausgaben ein und sehen sofort, wer wem was schuldet.",
+            )}{" "}
+            {user
+              ? t("Die Abrechnung erscheint zusätzlich in deinen Gruppen.")
+              : t("Ein Konto braucht dafür niemand.")}
           </p>
         </div>
 
@@ -52,7 +64,7 @@ export default async function StartBoardPage() {
         </div>
 
         <p className="hint">
-          Wer den Link hat, kann mitlesen und mitschreiben – teile ihn also nur mit den Beteiligten.
+          {t("Wer den Link hat, kann mitlesen und mitschreiben – teile ihn also nur mit den Beteiligten.")}
         </p>
       </main>
     </div>

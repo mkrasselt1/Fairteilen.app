@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SettleForm } from "./settle-form";
+import { getT } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Begleichen" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("Begleichen") };
+}
 export const dynamic = "force-dynamic";
 
 const userSelect = {
@@ -36,11 +39,13 @@ export default async function SettlePage({
     prisma.friendship.findMany({ where: { userId: user.id }, include: { friend: { select: userSelect } } }),
   ]);
 
+  const t = await getT();
+
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold">Zahlung erfassen</h1>
+      <h1 className="text-2xl font-bold">{t("Zahlung erfassen")}</h1>
       <p className="text-sm text-slate-500 dark:text-slate-400">
-        Trage hier ein, wenn jemand einen offenen Betrag tatsächlich überwiesen oder bar bezahlt hat.
+        {t("Trage hier ein, wenn jemand einen offenen Betrag tatsächlich überwiesen oder bar bezahlt hat.")}
       </p>
       <SettleForm
         currentUser={user}

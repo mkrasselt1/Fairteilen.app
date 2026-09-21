@@ -46,7 +46,7 @@ braucht nicht einmal ein Konto.
 | **Verlauf** | Aktivitätsfeed über alle Gruppen |
 | **Export** | CSV je Gruppe oder für alles |
 | **Konto** | Profil, Währung, Passwort, Google-/Apple-Verknüpfung, Löschung |
-| **Oberfläche** | Deutsch, responsiv, helles und dunkles Design, als PWA installierbar |
+| **Oberfläche** | Deutsch und Englisch mit automatischer Erkennung, responsiv, helles und dunkles Design, als PWA installierbar |
 | **Als App** | Sofort als PWA installierbar; für die Stores liegen Capacitor-Konfiguration, Symbol und Startbildschirm bereit – siehe [docs/apps.md](docs/apps.md) |
 
 ### Anmeldung
@@ -181,7 +181,8 @@ Datenbankabhängigkeiten – deshalb nutzen ihn der Server und der Gastmodus im 
 npm run dev         # Entwicklungsserver
 npm run setup       # Prisma-Client, Tabellen und Build in einem Schritt
 npm run doctor      # prüft Umgebung und Abhängigkeiten, verbindet sich zur Datenbank und testet Lese- und Schreibrecht
-npm test            # Tests für Rechenkern, Beträge und OAuth-Prüfung
+npm test            # Tests für Rechenkern, Beträge, OAuth-Prüfung und Übersetzung
+npm run i18n        # prüft, ob jeder Text der Oberfläche übersetzt ist
 npm run typecheck   # TypeScript ohne Ausgabe prüfen
 npm run build       # Produktions-Build
 npm run db:studio   # Prisma Studio
@@ -211,10 +212,53 @@ src/
   actions/          Server Actions (Formularverarbeitung)
   components/       Wiederverwendete Oberfläche
   lib/              Rechenkern, Datenzugriff, Anmeldung, OAuth, Formatierung
+                    i18n.ts / i18n-en.ts / texte.ts – die beiden Sprachen
 native/             Symbol, Startbildschirm und Offline-Seite für die App-Hüllen
 prisma/             Datenmodell und Beispieldaten
 tests/              Tests (node:test) und Browsertest
 ```
+
+---
+
+## Sprachen
+
+Die Oberfläche gibt es auf **Deutsch und Englisch**. Welche Sprache jemand sieht, entscheidet
+sich in dieser Reihenfolge:
+
+1. die bewusst gewählte Sprache (Cookie `fairteilen_sprache`, gesetzt über den Umschalter
+   **DE/EN** in der Kopfzeile bzw. im Kontomenü)
+2. die Sprache des Browsers (`Accept-Language`, mit Gewichtung – `en-US,en;q=0.9,de;q=0.8`
+   ergibt Englisch)
+3. Deutsch als Standard
+
+Umgeschaltet wird über einen normalen Verweis (`/api/sprache/en?zurueck=…`), also auch ohne
+JavaScript. Datum, Uhrzeit und Beträge folgen der Sprache: `de-DE` bzw. `en-GB`.
+
+Beide Sprachen liegen unter derselben Adresse – es gibt keine Präfixe wie `/en/`. Die Seiten
+werden dafür bei jeder Anfrage erzeugt und mit `Cache-Control: private, no-store` ausgeliefert,
+sodass kein Zwischenspeicher die falsche Sprache weitergeben kann.
+
+Schlüssel des Wörterbuchs ist der **deutsche Originaltext**:
+
+```tsx
+t("Ausgabe hinzufügen")                     // → „Add expense“
+t("{anzahl} Einträge", { anzahl: 3 })       // → „3 entries“
+```
+
+Fehlt ein Eintrag, bleibt der deutsche Text stehen – eine Seite bricht dadurch nie ab.
+`npm run i18n` listet auf, was noch fehlt, und prüft, ob in der Übersetzung dieselben
+Platzhalter vorkommen wie im Original; `npm test` prüft dasselbe noch einmal.
+
+### Eine weitere Sprache ergänzen
+
+1. In `src/lib/i18n.ts` das Kürzel zu `LOCALES`, `LOCALE_NAMES` und `INTL_LOCALES` hinzufügen.
+2. Ein Wörterbuch nach dem Muster von `src/lib/i18n-en.ts` anlegen und in `translator()`
+   auswählen.
+3. `npm run i18n` zeigt, welche Texte noch fehlen: `npm run i18n -- --liste` gibt sie als
+   JSON-Vorlage aus.
+
+Texte, die als Tabelle vorliegen (Kategorien, Währungen, Startseite, Navigation), stehen in
+`src/lib/categories.ts`, `src/lib/money.ts` und `src/lib/texte.ts` – auch sie werden geprüft.
 
 ---
 

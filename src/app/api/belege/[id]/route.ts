@@ -1,13 +1,14 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { readUpload } from "@/lib/uploads";
+import { getT } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
 /** Liefert einen Beleg aus – nur an Personen, die die Ausgabe sehen dürfen. */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
-  if (!user) return new Response("Nicht angemeldet", { status: 401 });
+  if (!user) return new Response((await getT())("Nicht angemeldet"), { status: 401 });
 
   const { id } = await params;
   const attachment = await prisma.attachment.findFirst({
@@ -22,13 +23,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       },
     },
   });
-  if (!attachment) return new Response("Nicht gefunden", { status: 404 });
+  if (!attachment) return new Response((await getT())("Nicht gefunden"), { status: 404 });
 
   let data: Buffer;
   try {
     data = await readUpload(attachment.storedName);
   } catch {
-    return new Response("Die Datei ist nicht mehr vorhanden.", { status: 410 });
+    return new Response((await getT())("Die Datei ist nicht mehr vorhanden."), { status: 410 });
   }
 
   const download = new URL(request.url).searchParams.has("download");

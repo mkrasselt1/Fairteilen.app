@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n";
 
 type Theme = "light" | "dark";
 
 export function ThemeToggle() {
+  const t = useT();
   const [theme, setTheme] = useState<Theme>("light");
+  const label = theme === "dark" ? t("Helles Design") : t("Dunkles Design");
 
   useEffect(() => {
     const stored = (localStorage.getItem("fairteilen-theme") as Theme | null) ?? null;
@@ -31,8 +34,8 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-      aria-label={theme === "dark" ? "Helles Design" : "Dunkles Design"}
-      title={theme === "dark" ? "Helles Design" : "Dunkles Design"}
+      aria-label={label}
+      title={label}
     >
       {theme === "dark" ? "☀️" : "🌙"}
     </button>

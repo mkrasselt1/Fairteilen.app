@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { formatMoney } from "@/lib/money";
 import { colorForId, initialsOf } from "@/lib/format";
+import { useIntlLocale, useT } from "@/components/i18n";
 
 export function Avatar({
   user,
@@ -63,10 +66,11 @@ export function Money({
   signed?: boolean;
   className?: string;
 }) {
+  const intlLocale = useIntlLocale();
   const tone = !signed ? "" : cents > 0 ? "positive" : cents < 0 ? "negative" : "";
   return (
     <span className={`tabular-nums ${tone} ${className}`}>
-      {formatMoney(signed ? Math.abs(cents) : cents, currency)}
+      {formatMoney(signed ? Math.abs(cents) : cents, currency, intlLocale)}
     </span>
   );
 }
@@ -109,23 +113,28 @@ export function SectionTitle({ children, action }: { children: React.ReactNode; 
 
 export function BalancePills({
   balances,
-  emptyLabel = "ausgeglichen",
+  emptyLabel,
 }: {
   balances: { currency: string; amountCents: number }[];
   emptyLabel?: string;
 }) {
+  const t = useT();
+  const intlLocale = useIntlLocale();
+
   if (balances.length === 0) {
-    return <span className="text-sm text-slate-500 dark:text-slate-400">{emptyLabel}</span>;
+    return (
+      <span className="text-sm text-slate-500 dark:text-slate-400">{emptyLabel ?? t("ausgeglichen")}</span>
+    );
   }
   return (
     <span className="flex flex-col items-end gap-0.5">
       {balances.map((b) => (
         <span key={b.currency} className="flex flex-col items-end">
           <span className={`text-sm font-semibold ${b.amountCents > 0 ? "positive" : "negative"}`}>
-            {formatMoney(Math.abs(b.amountCents), b.currency)}
+            {formatMoney(Math.abs(b.amountCents), b.currency, intlLocale)}
           </span>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            {b.amountCents > 0 ? "bekommst du" : "schuldest du"}
+            {b.amountCents > 0 ? t("bekommst du") : t("schuldest du")}
           </span>
         </span>
       ))}

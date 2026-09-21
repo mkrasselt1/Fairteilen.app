@@ -13,9 +13,20 @@ Was in der App bereits eingebaut ist – und was du selbst tun musst.
 | Vorschaubild für Messenger und soziale Netzwerke | `public/og.png`, Metadaten in `src/app/layout.tsx` |
 | `robots.txt` und `sitemap.xml`, zur Laufzeit erzeugt | `src/app/robots.ts`, `src/app/sitemap.ts` |
 | Persönliche Bereiche auf `noindex` | `src/app/(app)/layout.tsx` |
-| Installierbar als App (PWA), schnelle Auslieferung | `public/manifest.webmanifest` |
+| Installierbar als App (PWA), schnelle Auslieferung | `src/app/manifest.ts` |
+| Oberfläche auf Deutsch und Englisch, erkannt an der Browsersprache | `src/lib/i18n.ts` |
 
 Wichtig: `APP_URL` muss gesetzt sein, sonst stehen in Sitemap und Vorschaubild falsche Adressen.
+
+### Zwei Sprachen unter einer Adresse
+
+Titel, Beschreibungen, Schlagwörter und die strukturierten Daten der Startseite werden in der
+erkannten Sprache ausgeliefert; `<html lang>` und `og:locale` passen sich mit an. Eigene Adressen
+je Sprache (`/en/…`) gibt es bewusst nicht – das hält die Links kurz und teilbar.
+
+Eine Suchmaschine crawlt meist mit `Accept-Language: en`; sie sieht damit die englische Fassung
+derselben Seite. Wer beide Sprachen getrennt indexiert haben möchte, braucht getrennte Adressen
+samt `hreflang` – das wäre der nächste Schritt und ist bisher nicht eingebaut.
 
 ## Was du tun musst
 

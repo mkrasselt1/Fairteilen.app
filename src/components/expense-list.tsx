@@ -2,6 +2,7 @@ import Link from "next/link";
 import { categoryOf } from "@/lib/categories";
 import { formatDateShort } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
+import { getI18n } from "@/lib/i18n-server";
 
 type ListExpense = {
   id: string;
@@ -16,11 +17,11 @@ type ListExpense = {
   _count?: { comments: number; attachments: number };
 };
 
-function monthLabel(date: Date): string {
-  return new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(date);
+function monthLabel(date: Date, intlLocale: string): string {
+  return new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" }).format(date);
 }
 
-export function ExpenseList({
+export async function ExpenseList({
   expenses,
   currentUserId,
   showGroup = false,
@@ -32,9 +33,11 @@ export function ExpenseList({
   /** Im Link-Modus zeigen die Einträge auf die geteilte Abrechnung. */
   basePath?: string;
 }) {
+  const { t, intlLocale } = await getI18n();
+
   const months: { label: string; items: ListExpense[] }[] = [];
   for (const expense of expenses) {
-    const label = monthLabel(expense.date);
+    const label = monthLabel(expense.date, intlLocale);
     const last = months[months.length - 1];
     if (last && last.label === label) last.items.push(expense);
     else months.push({ label, items: [expense] });
@@ -52,14 +55,25 @@ export function ExpenseList({
               const mine = expense.shares.find((s) => s.userId === currentUserId);
               const net = (mine?.paidCents ?? 0) - (mine?.oweCents ?? 0);
               const payers = expense.shares.filter((s) => s.paidCents > 0);
-              const payerLabel =
+              // Der ganze Satz bleibt eine Einheit, damit die Wortstellung
+              // je Sprache stimmen kann („Du hast 12 € bezahlt“ / „You paid 12“).
+              const betrag = formatMoney(expense.amountCents, expense.currency, intlLocale);
+              const satz =
                 payers.length === 0
-                  ? "niemand"
+                  ? expense.isPayment
+                    ? t("niemand hat {betrag} überwiesen", { betrag })
+                    : t("niemand hat {betrag} bezahlt", { betrag })
                   : payers.length === 1
                     ? payers[0].userId === currentUserId
-                      ? "Du hast"
-                      : `${payers[0].user.name} hat`
-                    : `${payers.length} Personen haben`;
+                      ? expense.isPayment
+                        ? t("Du hast {betrag} überwiesen", { betrag })
+                        : t("Du hast {betrag} bezahlt", { betrag })
+                      : expense.isPayment
+                        ? t("{name} hat {betrag} überwiesen", { name: payers[0].user.name, betrag })
+                        : t("{name} hat {betrag} bezahlt", { name: payers[0].user.name, betrag })
+                    : expense.isPayment
+                      ? t("{anzahl} Personen haben {betrag} überwiesen", { anzahl: payers.length, betrag })
+                      : t("{anzahl} Personen haben {betrag} bezahlt", { anzahl: payers.length, betrag });
 
               return (
                 <li key={expense.id}>
@@ -69,7 +83,7 @@ export function ExpenseList({
                   >
                     <span className="w-10 shrink-0 text-center">
                       <span className="block text-[11px] font-medium uppercase text-slate-400">
-                        {formatDateShort(expense.date).split(" ")[1]}
+                        {formatDateShort(expense.date, intlLocale).split(" ")[1]}
                       </span>
                       <span className="block text-base font-semibold leading-tight">{expense.date.getDate()}</span>
                     </span>
@@ -79,8 +93,7 @@ export function ExpenseList({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{expense.description}</span>
                       <span className="hint block truncate">
-                        {payerLabel} {formatMoney(expense.amountCents, expense.currency)}{" "}
-                        {expense.isPayment ? "überwiesen" : "bezahlt"}
+                        {satz}
                         {showGroup && expense.group ? ` · ${expense.group.name}` : ""}
                         {expense._count && expense._count.comments > 0 ? ` · 💬 ${expense._count.comments}` : ""}
                         {expense._count && expense._count.attachments > 0 ? ` · 📎 ${expense._count.attachments}` : ""}
@@ -88,14 +101,14 @@ export function ExpenseList({
                     </span>
                     <span className="shrink-0 text-right">
                       {net === 0 ? (
-                        <span className="hint">nicht beteiligt</span>
+                        <span className="hint">{t("nicht beteiligt")}</span>
                       ) : (
                         <>
                           <span className="block text-[11px] text-slate-500 dark:text-slate-400">
-                            {net > 0 ? "du bekommst" : "du schuldest"}
+                            {net > 0 ? t("du bekommst") : t("du schuldest")}
                           </span>
                           <span className={`block font-semibold tabular-nums ${net > 0 ? "positive" : "negative"}`}>
-                            {formatMoney(Math.abs(net), expense.currency)}
+                            {formatMoney(Math.abs(net), expense.currency, intlLocale)}
                           </span>
                         </>
                       )}
