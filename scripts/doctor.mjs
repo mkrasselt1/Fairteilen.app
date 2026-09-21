@@ -10,6 +10,10 @@
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+
+/** Signal, um die Schreibprobe absichtlich zurückzurollen. */
+class Rueckrollen extends Error {}
 
 /** Werte aus .env übernehmen, ohne gesetzte Variablen zu überschreiben (wie app.js). */
 function loadEnvFile(file) {
@@ -216,20 +220,56 @@ if (process.env.DATABASE_URL && existsSync(join("node_modules", "@prisma", "clie
     const prisma = new PrismaClient({ log: [] });
     try {
       await prisma.$queryRaw`SELECT 1`;
+      let bestand = null;
       try {
         const [konten, gruppen, eintraege] = await Promise.all([
           prisma.user.count(),
           prisma.group.count(),
           prisma.expense.count(),
         ]);
-        console.log(
-          `Verbindung         steht – ${konten} Konten, ${gruppen} Gruppen, ${eintraege} Einträge`,
-        );
+        bestand = `${konten} Konten, ${gruppen} Gruppen, ${eintraege} Einträge`;
       } catch {
         problems.push(
           "Die Verbindung steht, aber die Tabellen fehlen noch.\n" +
             "    Einmalig ausführen: npm run db:push",
         );
+      }
+
+      if (bestand) {
+        // Schreibrecht ohne Spuren prüfen: ein Eintrag wird angelegt und die
+        // Transaktion danach absichtlich zurückgerollt – es bleibt nichts zurück.
+        let schreibt = false;
+        let schreibfehler = null;
+        try {
+          await prisma.$transaction(async (tx) => {
+            await tx.loginNonce.create({
+              data: { value: `doctor-${randomUUID()}`, expiresAt: new Date(Date.now() + 60_000) },
+            });
+            throw new Rueckrollen();
+          });
+        } catch (error) {
+          if (error instanceof Rueckrollen) schreibt = true;
+          else schreibfehler = error;
+        }
+
+        console.log(
+          `Verbindung         steht – ${schreibt ? "lesen und schreiben" : "nur lesen"} (${bestand})`,
+        );
+
+        if (!schreibfehler) {
+          // nichts zu melden
+        } else if (/command denied|denied to user|INSERT command/i.test(String(schreibfehler?.message ?? schreibfehler))) {
+          problems.push(
+            "Der Datenbankbenutzer darf lesen, aber nicht schreiben.\n" +
+              "    In Plesk unter Datenbanken dem Benutzer alle Rechte auf diese Datenbank geben.",
+          );
+        } else {
+          const text = String(schreibfehler?.message ?? schreibfehler)
+            .split("\n")
+            .map((line) => line.trim())
+            .find((line) => line && !/invocation|^at /.test(line));
+          problems.push(`Die Schreibprobe ist fehlgeschlagen.\n    ${(text ?? "unbekannter Fehler").slice(0, 160)}`);
+        }
       }
     } finally {
       await prisma.$disconnect();

@@ -180,7 +180,7 @@ Datenbankabhängigkeiten – deshalb nutzen ihn der Server und der Gastmodus im 
 ```bash
 npm run dev         # Entwicklungsserver
 npm run setup       # Prisma-Client, Tabellen und Build in einem Schritt
-npm run doctor      # prüft Umgebung, Abhängigkeiten und verbindet sich testweise zur Datenbank
+npm run doctor      # prüft Umgebung und Abhängigkeiten, verbindet sich zur Datenbank und testet Lese- und Schreibrecht
 npm test            # Tests für Rechenkern, Beträge und OAuth-Prüfung
 npm run typecheck   # TypeScript ohne Ausgabe prüfen
 npm run build       # Produktions-Build

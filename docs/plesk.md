@@ -178,15 +178,19 @@ Danach in Plesk noch **App neu starten**.
 ### Prüfen, ob die Datenbank wirklich erreichbar ist
 
 Skript **`doctor`** ausführen (Node.js-Seite → *NPM-Skript ausführen*, oder per SSH
-`npm run doctor`). Es baut eine echte Verbindung auf und zählt die vorhandenen Datensätze:
+`npm run doctor`). Es baut eine echte Verbindung auf, zählt die vorhandenen Datensätze
+und prüft, ob der Benutzer auch schreiben darf:
 
 ```
 DATABASE_URL       mysql://fairteilen:***@localhost:3306/fairteilen
 Datenbank-Provider mysql
-Verbindung         steht – 3 Konten, 1 Gruppen, 8 Einträge
+Verbindung         steht – lesen und schreiben (3 Konten, 1 Gruppen, 8 Einträge)
 
 ✓ Keine Probleme gefunden.
 ```
+
+Die Schreibprobe legt einen Eintrag in einer Transaktion an und rollt sie sofort zurück –
+in der Datenbank bleibt nichts zurück.
 
 Klemmt es, wird der Grund im Klartext genannt statt als Prisma-Meldung:
 
@@ -196,6 +200,7 @@ Klemmt es, wird der Grund im Klartext genannt statt als Prisma-Meldung:
 | Die Datenbank gibt es nicht, oder der Benutzer hat darauf keine Rechte | Datenbanknamen prüfen, Rechte in Plesk vergeben |
 | Der Datenbankserver ist unter dieser Adresse nicht erreichbar | Rechnername und Port prüfen |
 | Die Verbindung steht, aber die Tabellen fehlen noch | Skript `db:push` ausführen |
+| Verbindung steht – **nur lesen** | Der Benutzer hat keine Schreibrechte: in Plesk → *Datenbanken* → Benutzer alle Rechte geben |
 
 ### Ohne Git – zwei Klicks auf der Node.js-Seite
 
