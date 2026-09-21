@@ -201,8 +201,8 @@ if (existsSync("prisma/schema.prisma")) {
         if (!parsed.username) problems.push("In DATABASE_URL fehlt der Benutzername.");
       } catch {
         problems.push(
-          "DATABASE_URL lässt sich nicht lesen. Enthält das Passwort Sonderzeichen, müssen sie\n" +
-            "    kodiert werden: @ wird zu %40, # zu %23, / zu %2F, : zu %3A.",
+          "DATABASE_URL lässt sich nicht lesen. Enthält das Passwort # / oder ?, müssen diese\n" +
+            "    Zeichen kodiert werden: # zu %23, / zu %2F, ? zu %3F.",
         );
       }
     }

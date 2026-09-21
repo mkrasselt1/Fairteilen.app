@@ -34,8 +34,8 @@ if (/Environment variable not found: DATABASE_URL/i.test(output)) {
   console.log("");
   console.log("Umgebungsvariablen, die nur in der Oberfläche des Hostings stehen, erreichen");
   console.log("diesen Befehl je nach Version nicht – die Datei tut es immer.");
-  console.log("Enthält das Passwort @ : / oder #, müssen diese Zeichen kodiert werden");
-  console.log("(@ wird zu %40, # zu %23).");
+  console.log("Enthält das Passwort # / oder ?, müssen diese Zeichen kodiert werden:");
+  console.log("# wird zu %23, / zu %2F, ? zu %3F. Andere Sonderzeichen sind unkritisch.");
   console.log("");
   process.exit(1);
 }

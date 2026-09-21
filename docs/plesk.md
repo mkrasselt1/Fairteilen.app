@@ -126,6 +126,22 @@ und Prisma meldet lediglich `Environment variable not found` oder einen Schema-F
 
 `npm run doctor` prüft das und benennt genau diesen Fall.
 
+#### Sonderzeichen im Passwort
+
+Gegen MariaDB 10.11 mit Prisma 6 nachgemessen, jeweils mit einem Testbenutzer:
+
+| Zeichen | unverändert | kodiert |
+|---|---|---|
+| `^` Dach | funktioniert | `%5E` |
+| `@` At | funktioniert | `%40` |
+| `:` Doppelpunkt | funktioniert | `%3A` |
+| `#` Raute | **schlägt fehl** (`P1013: invalid port number`) | `%23` |
+| `/` Schrägstrich | **schlägt fehl** | `%2F` |
+| `?` Fragezeichen | **schlägt fehl** | `%3F` |
+
+Kodieren schadet in keinem Fall. Wer sich nichts merken will, nimmt ein Passwort nur aus
+Buchstaben und Ziffern – dann stellt sich die Frage nicht.
+
 ### Hinweise zu den Werten
 
 Enthält das Datenbankpasswort Sonderzeichen wie `@`, `:`, `/` oder `#`, müssen diese in der URL
