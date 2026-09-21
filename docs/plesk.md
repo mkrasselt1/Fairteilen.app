@@ -270,6 +270,34 @@ Systemversion, den Suchpfad der Shell und für jedes gefundene `node`, `npm` und
 C-Bibliothek es braucht. Der Eintrag mit einer höheren Zahl als die Systemversion ganz oben ist
 die Ursache.
 
+#### Wenn das System eigentlich neu genug ist: die chroot-Umgebung
+
+Meldet der Server per SSH eine neuere glibc, als die Fehlermeldung vermissen lässt, stammen beide
+Angaben aus **verschiedenen Umgebungen**. Typischer Fall: Der Abonnement-Zugang läuft
+„chrooted“. Plesk legt dafür unter dem Vhost eine abgeschottete Umgebung mit **eigenen Kopien**
+der Systembibliotheken an – und diese Kopien bleiben stehen, wenn das System später aktualisiert
+oder auf eine neue Distribution gehoben wird.
+
+Ein Beispiel: Das System ist Ubuntu 24.04 mit glibc 2.39, die chroot-Umgebung enthält aber noch
+eine ältere Fassung. Node-Versionen, die Plesk gegen die aktuelle Systembibliothek gebaut hat
+(22, 24, 26), starten darin nicht; ältere wie 18, 20 oder 21 schon – genau deshalb laufen andere
+Domains auf demselben Server ohne Beschwerden.
+
+**So lässt es sich belegen:** `sh ./scripts/pruefe-umgebung.sh` als Bereitstellungsaktion eintragen
+und `umgebung.log` mit der Ausgabe von `ldd --version` aus der SSH-Sitzung vergleichen. Stehen dort
+unterschiedliche Fassungen, ist es die chroot-Umgebung.
+
+**Wege heraus**, vom einfachsten zum gründlichsten:
+
+1. **Passende Node-Version wählen.** Auf der Node.js-Seite eine Version nehmen, die in der
+   chroot-Umgebung startet – meist 20 oder 18. Das löst das Problem sofort und lässt die
+   automatische Bereitstellung unangetastet.
+2. **Auf den chroot verzichten.** Abonnement → *Webhosting-Zugriff* → *Zugriff auf den Server über
+   SSH* von „chrooted“ auf `/bin/bash` umstellen. Dann gilt die echte Systemumgebung.
+3. **Die chroot-Umgebung erneuern.** Plesk kann das Skelett neu aufbauen; die passende Anleitung
+   steht in der Plesk-Dokumentation zum Thema „chroot template“. Das ist der gründliche Weg,
+   betrifft aber alle Abonnements auf dem Server.
+
 #### Welches System läuft überhaupt, und welche glibc hat es?
 
 Die C-Bibliothek gehört zur Distribution – aus der Version des Systems ergibt sich die Version der
